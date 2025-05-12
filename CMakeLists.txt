@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.5)
+project(drt_ur_gui)
+
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+
+# ament_python_install_package(${PROJECT_NAME})
+
+install(
+  DIRECTORY ui
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+    scripts/drt_ur_gui.py
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+ament_package()
