@@ -11,7 +11,7 @@ from drt_ur_gui.node import RemoteURCmdr
 class URGui(QMainWindow, RemoteURCmdr):
     def __init__(self):
         super().__init__()
-        ui_file_name = os.path.join(get_package_share_directory("drt_ur_gui"), "ui", "drt_ur_gui.ui")
+        ui_file_name = os.path.join(get_package_share_directory("drt_ur_gui"), "ui", "drt_ur.ui")
         ui_file = QFile(ui_file_name)
         if not ui_file.open(QIODevice.ReadOnly):
             print(f"Cannot open {ui_file_name}: {ui_file.errorString()}")
@@ -23,13 +23,13 @@ class URGui(QMainWindow, RemoteURCmdr):
         # if not self.window:
         #     print(loader.errorString())
         #     sys.exit(-1)
-        self.srvButton.clicked.connect(self.srv_button_clicked)
-        self.pushButton2.clicked.connect(self.button2_clicked)
-        self.pushButton3.clicked.connect(self.button3_clicked)
-        self.pushButton4.clicked.connect(self.button4_clicked)
+        self.pushButton.clicked.connect(self.button_clicked)
+        self.pushButton_2.clicked.connect(self.button2_clicked)
+        self.pushButton_3.clicked.connect(self.button3_clicked)
+        self.pushButton_4.clicked.connect(self.button4_clicked)
         
     @Slot()
-    def srv_button_clicked(self):
+    def button_clicked(self):
         print("srv button clicked!!!")
         response = self.send_request()
         print(response)
