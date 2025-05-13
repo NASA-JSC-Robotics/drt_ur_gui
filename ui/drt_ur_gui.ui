@@ -13,21 +13,64 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+
+
   <widget class="QWidget" name="centralWidget">
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="srvButton">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>40</y>
+      <width>201</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>srvButton</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton2">
     <property name="geometry">
      <rect>
       <x>110</x>
       <y>80</y>
       <width>201</width>
-      <height>81</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>PushButton2</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton3">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>120</y>
+      <width>201</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PushButton3</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton4">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>160</y>
+      <width>201</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PushButton4</string>
     </property>
    </widget>
   </widget>
+
+  
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>

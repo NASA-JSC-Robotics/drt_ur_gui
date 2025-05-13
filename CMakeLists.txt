@@ -3,8 +3,9 @@ project(drt_ur_gui)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
+find_package(python_qt_binding REQUIRED)
 
-# ament_python_install_package(${PROJECT_NAME})
+ament_python_install_package(${PROJECT_NAME})
 
 install(
   DIRECTORY ui
@@ -12,7 +13,7 @@ install(
 )
 
 install(PROGRAMS
-    scripts/drt_ur_gui.py
+    scripts/run_gui.py
     DESTINATION lib/${PROJECT_NAME}
 )
 
