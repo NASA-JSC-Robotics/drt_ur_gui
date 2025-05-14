@@ -1,8 +1,8 @@
 
 import os, sys
+from datetime import datetime
 from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer
-from python_qt_binding.QtGui import QTextCharFormat
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
@@ -44,7 +44,7 @@ class URGui(QMainWindow):
                 background-color: #000000;
                 color:            #FFFFFF;
                 font-family:      monospace;
-                font-size:        12pt;
+                font-size:        10pt;
                 }
             """)
         
@@ -61,43 +61,48 @@ class URGui(QMainWindow):
         item = QTableWidgetItem(str(data))
         self.tableWidget.setItem(row, column, item)
         return
-        
+    
+    def addText(self, data):
+        self.textEditor.appendPlainText(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}]")
+        self.textEditor.appendPlainText(str(data))
+        scrollbar = self.textEditor.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+        return
     
     @Slot()
     def button_clicked(self):
-        self.textEditor.clear()
         print("Button 0 requested, calling...")
-        self.textEditor.insertPlainText("Button 0 requested, calling...\n")
+        self.addText("Button 0 requested, calling...\n")
         response = self.be.send_request_0()
         print(response)
-        self.textEditor.insertPlainText(f"Button 0 response: {str(response)}")
+        self.addText(f"Button 0 response: {str(response)}\n\n")
         return
 
     @Slot()
     def button1_clicked(self):
         print("Button 1 clicked!!!")
-        self.textEditor.clear()
+        self.addText("Button 1 requested, calling...\n")
         response = self.be.send_request_1()
         print(response)
-        self.textEditor.insertPlainText(f"Button 1 response: {str(response)}")
+        self.addText(f"Button 1 response: {str(response)}\n\n")
         return
     
     @Slot()
     def button2_clicked(self):
         print("button 2 clicked!!!")
-        self.textEditor.clear()
+        self.addText("Button 2 requested, calling...\n")
         response = self.be.send_request_2()
         print(response)
-        self.textEditor.insertPlainText(f"Button 2 response: {str(response)}")
+        self.addText(f"Button 2 response: {str(response)}\n\n")
         return
 
     @Slot()
     def button3_clicked(self):
         print("button 3 clicked!!!")
-        self.textEditor.clear()
+        self.addText("Button 3 requested, calling...\n")
         response = self.be.send_request_3()
         print(response)
-        self.textEditor.insertPlainText(f"Button 3 response: {str(response)}")
+        self.addText(f"Button 3 response: {str(response)}\n\n")
         return
     
     def status_0(self):
