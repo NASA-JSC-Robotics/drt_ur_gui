@@ -1,12 +1,10 @@
 
 import os, sys
-from python_qt_binding.QtWidgets import QMainWindow
+from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
-
-# from drt_ur_gui.node import RemoteURCmdr
 
 class URGui(QMainWindow):
     def __init__(self, backend):
@@ -20,26 +18,36 @@ class URGui(QMainWindow):
         loadUi(ui_file, self)
         ui_file.close()
         
+        
+        # Status timers
+        self.tableWidget.setRowCount(3)
         timer1 = QTimer(self)
         timer1.timeout.connect(self.status_0)
+        self.setCell(0, 0, "request 1")
         timer1.start(2000)
         timer2 = QTimer(self)
         timer2.timeout.connect(self.status_1)
+        self.setCell(1, 0, "request 2")
         timer2.start(2000)
         timer3 = QTimer(self)
         timer3.timeout.connect(self.status_2)
+        self.setCell(2, 0, "request 3")
         timer3.start(2000)
         
-        
-        # stat_timer_0 = self.create_timer(2.0, self.status_0, callback_group=self.r_cbg)
-        # stat_timer_1 = self.create_timer(2.0, self.status_1, callback_group=self.r_cbg)
-        # stat_timer_2 = self.create_timer(2.0, self.status_2, callback_group=self.r_cbg)
 
+        # Button connections
         self.pushButton.clicked.connect(self.button_clicked)
         self.pushButton_1.clicked.connect(self.button1_clicked)
         self.pushButton_2.clicked.connect(self.button2_clicked)
         self.pushButton_3.clicked.connect(self.button3_clicked)
         
+        
+    def setCell(self, row, column, data):
+        item = QTableWidgetItem(str(data))
+        self.tableWidget.setItem(row, column, item)
+        return
+        
+    
     @Slot()
     def button_clicked(self):
         print("Button 0 clicked!!!")
@@ -71,18 +79,21 @@ class URGui(QMainWindow):
     def status_0(self):
         print("Requesting status 0")
         response = self.be.send_request_4()
+        self.setCell(0, 1, str(response))
         print(response)
         return
     
     def status_1(self):
         print("Requesting status 1")
         response = self.be.send_request_5()
+        self.setCell(1, 1, str(response))
         print(response)
         return
     
     def status_2(self):
         print("Requesting status 2")
         response = self.be.send_request_6()
+        self.setCell(2, 1, str(response))
         print(response)
         return
     
