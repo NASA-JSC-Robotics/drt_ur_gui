@@ -16,36 +16,63 @@ class URGui(QMainWindow, RemoteURCmdr):
         if not ui_file.open(QIODevice.ReadOnly):
             print(f"Cannot open {ui_file_name}: {ui_file.errorString()}")
             sys.exit(-1)
-        # loader = QUiLoader()
-        # self.window = loader.load(ui_file)
         loadUi(ui_file, self)
         ui_file.close()
-        # if not self.window:
-        #     print(loader.errorString())
-        #     sys.exit(-1)
+        
+        stat_timer_0 = self.create_timer(2.0, self.status_0, callback_group=self.r_cbg)
+        stat_timer_1 = self.create_timer(2.0, self.status_1, callback_group=self.r_cbg)
+        stat_timer_2 = self.create_timer(2.0, self.status_2, callback_group=self.r_cbg)
+
         self.pushButton.clicked.connect(self.button_clicked)
+        self.pushButton_1.clicked.connect(self.button1_clicked)
         self.pushButton_2.clicked.connect(self.button2_clicked)
         self.pushButton_3.clicked.connect(self.button3_clicked)
-        self.pushButton_4.clicked.connect(self.button4_clicked)
+        
+        
+        
         
     @Slot()
     def button_clicked(self):
-        print("srv button clicked!!!")
-        response = self.send_request()
+        print("Button 0 clicked!!!")
+        response = self.send_request_0()
         print(response)
         return
 
     @Slot()
-    def button2_clicked(self):
-        print("button 2 clicked!!!")
+    def button1_clicked(self):
+        print("Button 1 clicked!!!")
+        response = self.send_request_1()
+        print(response)
         return
     
     @Slot()
-    def button3_clicked(self):
-        print("button 3 clicked!!!")
+    def button2_clicked(self):
+        print("button 2 clicked!!!")
+        response = self.send_request_2()
+        print(response)
         return
 
     @Slot()
-    def button4_clicked(self):
-        print("button 4 clicked!!!")
+    def button3_clicked(self):
+        print("button 3 clicked!!!")
+        response = self.send_request_3()
+        print(response)
+        return
+    
+    def status_0(self):
+        print("Requesting status 0")
+        response = self.send_request_4()
+        print(response)
+        return
+    
+    def status_1(self):
+        print("Requesting status 1")
+        response = self.send_request_5()
+        print(response)
+        return
+    
+    def status_2(self):
+        print("Requesting status 2")
+        response = self.send_request_6()
+        print(response)
         return
