@@ -19,24 +19,27 @@ class URGui(QMainWindow):
         loadUi(ui_file, self)
         ui_file.close()
         
-        
         # Status timers
         self.tableWidget.setRowCount(3)
-        timer1 = QTimer(self)
-        timer1.timeout.connect(self.status_0)
-        self.setCell(0, 0, "request 1")
-        timer1.start(2000)
-        timer2 = QTimer(self)
-        timer2.timeout.connect(self.status_1)
-        self.setCell(1, 0, "request 2")
-        timer2.start(2000)
-        timer3 = QTimer(self)
-        timer3.timeout.connect(self.status_2)
-        self.setCell(2, 0, "request 3")
-        timer3.start(2000)
-        self.status_0()
-        self.status_1()
-        self.status_2()
+        self.setCell(0, 0, "Robot mode:")
+        self.setCell(1, 0, "Safety mode:")
+        self.setCell(2, 0, "Program state:")
+
+        timer_robot_mode = QTimer(self)
+        timer_robot_mode.timeout.connect(self.status_robot_mode)
+        timer_robot_mode.start(2000)
+
+        timer_safety_mode = QTimer(self)
+        timer_safety_mode.timeout.connect(self.status_safety_mode)
+        timer_safety_mode.start(2000)
+
+        timer_program_state = QTimer(self)
+        timer_program_state.timeout.connect(self.status_program_state)
+        timer_program_state.start(2000)
+
+        self.status_robot_mode()
+        self.status_safety_mode()
+        self.status_program_state()
         
         self.textEditor.setStyleSheet(
             """
@@ -49,13 +52,11 @@ class URGui(QMainWindow):
             """)
         
         # Button connections
-        self.pushButton.clicked.connect(self.button_clicked)
-        self.pushButton_1.clicked.connect(self.button1_clicked)
-        self.pushButton_2.clicked.connect(self.button2_clicked)
-        self.pushButton_3.clicked.connect(self.button3_clicked)
-        
-
-        
+        self.b_brakeRelease.clicked.connect(self.brake_release_clicked)
+        self.b_play.clicked.connect(self.play_clicked)
+        self.b_connect.clicked.connect(self.connect_clicked)
+        self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
+        self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
         
     def setCell(self, row, column, data):
         item = QTableWidgetItem(str(data))
@@ -70,59 +71,68 @@ class URGui(QMainWindow):
         return
     
     @Slot()
-    def button_clicked(self):
-        print("Button 0 requested, calling...")
+    def brake_release_clicked(self): # TODO
+        # print("Button 0 requested, calling...")
         self.addText("Button 0 requested, calling...\n")
-        response = self.be.send_request_0()
-        print(response)
+        response = self.be.send_brake_release()
+        # print(response)
         self.addText(f"Button 0 response: {str(response)}\n\n")
         return
 
     @Slot()
-    def button1_clicked(self):
-        print("Button 1 clicked!!!")
+    def play_clicked(self):
+        # print("Button 1 clicked!!!")
         self.addText("Button 1 requested, calling...\n")
-        response = self.be.send_request_1()
-        print(response)
+        response = self.be.send_play()
+        # print(response)
         self.addText(f"Button 1 response: {str(response)}\n\n")
         return
     
     @Slot()
-    def button2_clicked(self):
-        print("button 2 clicked!!!")
+    def connect_clicked(self):
+        # print("button 2 clicked!!!")
         self.addText("Button 2 requested, calling...\n")
-        response = self.be.send_request_2()
-        print(response)
+        response = self.be.send_connect()
+        # print(response)
         self.addText(f"Button 2 response: {str(response)}\n\n")
         return
 
     @Slot()
-    def button3_clicked(self):
-        print("button 3 clicked!!!")
+    def unlock_pstop_clicked(self):
+        # print("button 3 clicked!!!")
         self.addText("Button 3 requested, calling...\n")
-        response = self.be.send_request_3()
-        print(response)
+        response = self.be.send_unlock_pstop()
+        # print(response)
         self.addText(f"Button 3 response: {str(response)}\n\n")
         return
     
-    def status_0(self):
-        print("Requesting status 0")
-        response = self.be.send_request_4()
-        self.setCell(0, 1, str(response))
-        print(response)
+    @Slot()
+    def restart_safety_clicked(self):
+        # print("button 3 clicked!!!")
+        self.addText("Button 3 requested, calling...\n")
+        response = self.be.send_restart_safety()
+        # print(response)
+        self.addText(f"Button 3 response: {str(response)}\n\n")
+        return
+
+    def status_robot_mode(self):
+        # print("Requesting status 0")
+        response = self.be.send_robot_mode_req()
+        self.setCell(0, 1, str(response[0])) # TODO: process the other response items (answer, success)
+        # print(response)
         return
     
-    def status_1(self):
-        print("Requesting status 1")
-        response = self.be.send_request_5()
-        self.setCell(1, 1, str(response))
-        print(response)
+    def status_safety_mode(self):
+        # print("Requesting status 1")
+        response = self.be.send_safety_mode_req()
+        self.setCell(1, 1, str(response[0])) # TODO: process the other response items (answer, success)
+        # print(response)
         return
     
-    def status_2(self):
-        print("Requesting status 2")
-        response = self.be.send_request_6()
-        self.setCell(2, 1, str(response))
-        print(response)
+    def status_program_state(self):
+        # print("Requesting status 2")
+        response = self.be.send_program_state_req()
+        self.setCell(2, 1, str(response[0])) # TODO: process the other response items (program_name, answer, success)
+        # print(response)
         return
     

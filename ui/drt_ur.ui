@@ -31,30 +31,37 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="b_brakeRelease">
         <property name="text">
-         <string>PushButton</string>
+         <string>release brakes</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_1">
+       <widget class="QPushButton" name="b_play">
         <property name="text">
-         <string>PushButton</string>
+         <string>play</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="b_connect">
         <property name="text">
-         <string>PushButton</string>
+         <string>connect</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="b_unlockPStop">
         <property name="text">
-         <string>PushButton</string>
+         <string>unlock protective stop</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="b_restartSafety">
+        <property name="text">
+         <string>restart safety</string>
         </property>
        </widget>
       </item>
