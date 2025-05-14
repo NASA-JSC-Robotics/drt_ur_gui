@@ -59,6 +59,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QPlainTextEdit" name="textEditor">
+        <property name="ReadOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="verticalSpacer_2">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -107,7 +114,7 @@
          <set>QAbstractItemView::NoEditTriggers</set>
         </property>
         <property name="selectionMode">
-         <set>QAbstractItemView::NoSelection</set>
+         <enum>QAbstractItemView::NoSelection</enum>
         </property>
         <property name="rowCount">
          <number>0</number>
