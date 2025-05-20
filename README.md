@@ -1,7 +1,21 @@
 # DRT UR GUI
 The DRT UR GUI is a ROS2 based user interface that enables remote Universal Robotics arm operations.
 
-# WORK IN PROGRESS
+## Installation
+Just clone it in to your workspace and build. If you have trouble try rosdepping.
+```bash
+rosdep update
+rosdep check -i --from-paths <your workspace source dir> --rosdistro=humble
+rosdep install -iy --from-paths <your workspace source dir> --rosdistro=humble
+```
+
+## Use
+Currently all you can do in the GUI is make a selection of service calls.
+- brake release
+    - Calls `/dashboard_client/brake_release`
+    - Brings the UR to RUNNING (green circle) mode
+- 
+
 
 ## Notes
 - UR pendantless operations:

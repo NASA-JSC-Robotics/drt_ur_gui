@@ -14,6 +14,7 @@ install(
 
 install(PROGRAMS
     scripts/run_gui.py
+    scripts/run_mock_dbc.py
     DESTINATION lib/${PROJECT_NAME}
 )
 
