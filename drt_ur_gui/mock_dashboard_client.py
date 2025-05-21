@@ -4,6 +4,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 
 
 from std_srvs.srv import Trigger
+from ur_dashboard_msgs.msg import RobotMode, SafetyMode, ProgramState
 from ur_dashboard_msgs.srv import (
     AddToLog,
     GetRobotMode,
@@ -28,7 +29,7 @@ class FakeClass():
 
 class FakeDashboardClient(Node):
     def __init__(self):
-        super().__init__('dashboard_client')
+        super().__init__('dashboard_client') 
         
         self.r_cbg = ReentrantCallbackGroup()
         self.init_srvs()
@@ -40,6 +41,7 @@ class FakeDashboardClient(Node):
             'dashboard_client/add_to_log', 
             self.cb_AddToLog, 
             callback_group=self.r_cbg)
+        
         self.s_brakerelease = self.create_service(
             Trigger, 
             'dashboard_client/brake_release', 
@@ -247,7 +249,8 @@ class FakeDashboardClient(Node):
     def cb_GetRobotMode(self, req, res):
         req
         self.get_logger().info('Incoming request \n get_robot_mode')
-        res.robot_mode = 7
+        res.robot_mode = RobotMode()
+        res.robot_mode.mode = 7
         res.answer = "answer"
         res.success = True
         return res
@@ -255,7 +258,8 @@ class FakeDashboardClient(Node):
     def cb_GetSafetyMode(self, req, res):
         req
         self.get_logger().info('Incoming request \n get_safety_mode')
-        res.safety_mode = 1
+        res.safety_mode = SafetyMode()
+        res.safety_mode.mode = 1
         res.answer = "answer"
         res.success = True
         return res
@@ -323,7 +327,8 @@ class FakeDashboardClient(Node):
     def cb_ProgramState(self, req, res):
         req
         self.get_logger().info('Incoming request \n program_state')
-        res.state = 'PLAYING'
+        res.state = ProgramState()
+        res.state.state = 'PLAYING' # So stupid that I can't just directly set the state as a string, hopefully I'm just not smart enough to understand the reasoning here, I guess to restrict responses?
         res.program_name = 'program.urp'
         res.answer = 'answer'
         res.success = True
