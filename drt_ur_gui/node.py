@@ -1,5 +1,5 @@
 
-import sys
+import queue
 
 # from example_interfaces.srv import AddTwoInts
 from ur_dashboard_msgs.srv import GetRobotMode, GetSafetyMode, GetProgramState
@@ -12,8 +12,52 @@ class RemoteURCmdr(Node):
     def __init__(self):
         super().__init__('remote_ur_commander')
         
-        self.r_cbg = ReentrantCallbackGroup()
+        self.response_queue = queue.Queue()
         
+        # self.r_cbg = ReentrantCallbackGroup()
+        
+        services = [
+            { # brake release
+                'name': 'dashboard_client/brake_release',
+                'type': Trigger,
+            },
+            { # play
+                'name': 'dashboard_client/play',
+                'type': Trigger,
+            },
+            { # connect
+                'name': 'dashboard_client/connect',
+                'type': Trigger,
+            },
+            { # unlock protective stop
+                'name': 'dashboard_client/unlock_protective_stop',
+                'type': Trigger,
+            },
+            { # restart safety
+                'name': 'dashboard_client/restart_safety',
+                'type': Trigger,
+            },
+            { # get robot mode
+                'name': 'dashboard_client/get_robot_mode',
+                'type': GetRobotMode,
+            },
+            { # get safety mode
+                'name': 'dashboard_client/get_safety_mode',
+                'type': GetSafetyMode,
+            },
+            { # program state
+                'name': 'dashboard_client/program_state',
+                'type': GetProgramState,
+            }
+        ]
+        
+        self.clients = {}
+        
+        for service in services:
+            client = self.create_client(service['type'], service['name'])
+            self.clients[service['name']] = client
+            
+        '''  old service clients
         self.client_brake_release = self.create_client(Trigger, 'dashboard_client/brake_release', callback_group=self.r_cbg)
         self.client_play = self.create_client(Trigger, 'dashboard_client/play', callback_group=self.r_cbg)
         self.client_connect = self.create_client(Trigger, 'dashboard_client/connect', callback_group=self.r_cbg)
@@ -35,7 +79,43 @@ class RemoteURCmdr(Node):
                 and self.client_program_state.wait_for_service(timeout_sec=1.0)
                 and self.client_restart_safety.wait_for_service(timeout_sec=1.0)):
             self.get_logger().info('service not available, waiting again...')
+        '''
     
+    
+    def send_service_request(self, name: str, content: dict = None):
+        
+        # is the service known?
+        if name not in self.clients.keys():
+            self.get_logger().error(f'service {name} requested is unavailable!')
+            # self.response_queue.put({
+            #     'service_name': name,
+            #     'success': False,
+            #     'message': f"Service client for '{name}' not found.",
+            #     'response_content': None
+            # })
+            return
+        
+        client = self.clients[name]
+        
+        # is the service ready?
+        if not client.service_is_ready():
+            self.get_logger().warn(f"Service '{name}' is not ready, skipping request.")
+            # self.response_queue.put({
+            #     'service_name': name,
+            #     'success': False,
+            #     'message': f"Service '{name}' is not ready",
+            #     'response_content': None
+            # })
+            return
+        
+        req_type = client.srv_type.Request
+        req = req_type()
+        
+        if content:
+            
+
+        
+    '''
     def send_brake_release(self):
         req = Trigger.Request()
         future = self.client_brake_release.call_async(req)
@@ -119,4 +199,4 @@ class RemoteURCmdr(Node):
             response.answer,
             response.success,
         ]
-    
+    '''

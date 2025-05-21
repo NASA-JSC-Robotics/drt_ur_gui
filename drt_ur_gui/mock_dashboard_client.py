@@ -287,6 +287,8 @@ class FakeDashboardClient(Node):
         self.get_logger().info('Incoming request \n play')
         res.success = True
         res.message = "program playing"
+        while True: # blocking statement to test threading
+            continue
         return res
     
     def cb_Popup(self, req, res):
