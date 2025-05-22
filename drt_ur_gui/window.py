@@ -1,11 +1,27 @@
 
-import os, sys
+import os, sys, queue
 from datetime import datetime
 from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
+
+from ur_dashboard_msgs.srv import (
+    Popup, AddToLog, GetRobotMode,
+    Load, IsProgramSaved, RawRequest,
+    GetLoadedProgram, IsProgramRunning,
+    GetProgramState, GetSafetyMode
+)
+from ur_dashboard_msgs.msg import ProgramState, RobotMode, SafetyMode
+
+
+def denumerate_ros_msg_type(msg_type):
+    return {getattr(msg_type, name): name for name in dir(msg_type) if not name.startswith('_') and isinstance(getattr(msg_type, name), int)}
+
+ROBOT_MODES = denumerate_ros_msg_type(RobotMode)
+SAFETY_MODES = denumerate_ros_msg_type(SafetyMode)
+
 
 class URGui(QMainWindow):
     def __init__(self, backend):
@@ -24,18 +40,22 @@ class URGui(QMainWindow):
         self.setCell(0, 0, "Robot mode:")
         self.setCell(1, 0, "Safety mode:")
         self.setCell(2, 0, "Program state:")
+        
+        timer_queue = QTimer(self)
+        timer_queue.timeout.connect(self._consume_queue)
+        timer_queue.start(50) # 20 hz
 
         timer_robot_mode = QTimer(self)
         timer_robot_mode.timeout.connect(self.status_robot_mode)
-        timer_robot_mode.start(2000)
+        timer_robot_mode.start(2000) # 0.5 hz
 
         timer_safety_mode = QTimer(self)
         timer_safety_mode.timeout.connect(self.status_safety_mode)
-        timer_safety_mode.start(2000)
+        timer_safety_mode.start(2000) # 0.5 hz
 
         timer_program_state = QTimer(self)
         timer_program_state.timeout.connect(self.status_program_state)
-        timer_program_state.start(2000)
+        timer_program_state.start(2000) # 0.5 hz
 
         self.status_robot_mode()
         self.status_safety_mode()
@@ -57,7 +77,39 @@ class URGui(QMainWindow):
         self.b_connect.clicked.connect(self.connect_clicked)
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
+    
+
+    
+    def _consume_queue(self):
+        try:
+            response = self.be.response_queue.get(timeout=0.1) # we can only wait as long as our timer period, right?
+            service_name = response['service_name']
+            res_content = response['content']
+            if service_name == 'dashboard_client/get_robot_mode':
+                robot_mode = ROBOT_MODES[res_content.robot_mode.mode]
+                self.show_robot_mode(robot_mode)
+            elif service_name == 'dashboard_client/get_safety_mode':
+                safety_mode = SAFETY_MODES[res_content.safety_mode.mode]
+                self.show_safety_mode(safety_mode)
+            elif service_name == 'dashboard_client/program_state':
+                program_state = res_content.state.state
+                self.show_program_state(program_state)
+            else: # if response is not from a status service
+                display_txt = []
+                display_txt.append(response['message']) # TODO: process success as color highlight? Or prefix?
+                res_fields = response['service_type'].Response.get_fields_and_field_types()
+                for field in res_fields.keys():
+                    display_txt.append(f"\v{field}: {getattr(res_content, field)}")
+                display_txt = ''.join(display_txt)
+                self.addText(display_txt)
+        except queue.Empty:
+            pass
+        except Exception as e:
+            self.be.get_logger().error(f'Exception {e} encountered while processing response queue')
+            return
+        return
         
+    
     def setCell(self, row, column, data):
         item = QTableWidgetItem(str(data))
         self.tableWidget.setItem(row, column, item)
@@ -71,68 +123,55 @@ class URGui(QMainWindow):
         return
     
     @Slot()
-    def brake_release_clicked(self): # TODO
-        # print("Button 0 requested, calling...")
-        self.addText("Button 0 requested, calling...\n")
-        response = self.be.send_brake_release()
-        # print(response)
-        self.addText(f"Button 0 response: {str(response)}\n\n")
+    def brake_release_clicked(self):
+        self.addText("Brake release requested, calling...\n")
+        self.be.send_service_request('dashboard_client/brake_release')
         return
 
     @Slot()
     def play_clicked(self):
-        # print("Button 1 clicked!!!")
-        self.addText("Button 1 requested, calling...\n")
-        response = self.be.send_play()
-        # print(response)
-        self.addText(f"Button 1 response: {str(response)}\n\n")
+        self.addText("Program play requested, calling...\n")
+        self.be.send_service_request('dashboard_client/play')
         return
     
     @Slot()
     def connect_clicked(self):
-        # print("button 2 clicked!!!")
-        self.addText("Button 2 requested, calling...\n")
-        response = self.be.send_connect()
-        # print(response)
-        self.addText(f"Button 2 response: {str(response)}\n\n")
+        self.addText("Dashboard connect requested, calling...\n")
+        self.be.send_service_request('dashboard_client/connect')
         return
 
     @Slot()
     def unlock_pstop_clicked(self):
-        # print("button 3 clicked!!!")
         self.addText("Button 3 requested, calling...\n")
-        response = self.be.send_unlock_pstop()
-        # print(response)
-        self.addText(f"Button 3 response: {str(response)}\n\n")
+        self.be.send_service_request('dashboard_client/unlock_protective_stop')
         return
     
     @Slot()
     def restart_safety_clicked(self):
-        # print("button 3 clicked!!!")
         self.addText("Button 3 requested, calling...\n")
-        response = self.be.send_restart_safety()
-        # print(response)
-        self.addText(f"Button 3 response: {str(response)}\n\n")
+        self.be.send_service_request('dashboard_client/restart_safety')
         return
 
     def status_robot_mode(self):
-        # print("Requesting status 0")
-        response = self.be.send_robot_mode_req()
-        self.setCell(0, 1, str(response[0])) # TODO: process the other response items (answer, success)
-        # print(response)
+        self.be.send_service_request('dashboard_client/get_robot_mode')
         return
     
     def status_safety_mode(self):
-        # print("Requesting status 1")
-        response = self.be.send_safety_mode_req()
-        self.setCell(1, 1, str(response[0])) # TODO: process the other response items (answer, success)
-        # print(response)
+        self.be.send_service_request('dashboard_client/get_safety_mode')
         return
-    
+
     def status_program_state(self):
-        # print("Requesting status 2")
-        response = self.be.send_program_state_req()
-        self.setCell(2, 1, str(response[0])) # TODO: process the other response items (program_name, answer, success)
-        # print(response)
+        self.be.send_service_request('dashboard_client/program_state')
+        return
+
+    def show_robot_mode(self, mode: str):
+        self.setCell(0, 1, mode)
         return
     
+    def show_safety_mode(self, mode: str):
+        self.setCell(1, 1, mode)
+        return    
+    
+    def show_program_state(self, state: str):
+        self.setCell(2, 1, state)
+        return
