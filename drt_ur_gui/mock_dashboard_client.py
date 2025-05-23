@@ -235,17 +235,6 @@ class FakeDashboardClient(Node):
         res.success = True
         return res
     
-    '''
-    quick blurb on digesting RobotMode for back lookup
-    
-    for name, value in RobotMode.__dict__.items():
-        print(f"name: {name} \n value: {value}")
-        if isinstance(value, int) and name.isupper():
-            test[value] = name
-    __dict__: meta attribute that contains all of the attribute of the object to which the __dict__ attribute belongs
-    In python, everything is an object
-    '''
-    
     def cb_GetRobotMode(self, req, res):
         req
         self.get_logger().info('Incoming request \n get_robot_mode')
@@ -287,8 +276,6 @@ class FakeDashboardClient(Node):
         self.get_logger().info('Incoming request \n play')
         res.success = True
         res.message = "program playing"
-        while True: # blocking statement to test threading
-            continue
         return res
     
     def cb_Popup(self, req, res):

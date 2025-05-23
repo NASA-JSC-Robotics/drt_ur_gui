@@ -131,7 +131,7 @@ class RemoteURCmdr(Node):
             'message': 'Service call failed',
             'content': None
         }
-        
+        self.get_logger().info(f"Received response from {service_name}")
         try:
             res = future.result()
             output['content'] = res
@@ -141,6 +141,7 @@ class RemoteURCmdr(Node):
             output['message'] = f"Exception during service call {service_name}: {e}"
             self.get_logger().info(f'Exception {e} while processing response for {service_name}')
         
+        self.get_logger().info(f"Response from {service_name} added to queue")
         self.response_queue.put(output)
         return
 

@@ -23,6 +23,7 @@ def main(args=None):
     ur_gui.show()
     
     app.exec_()
+    ur_cmdr.response_queue.join()
     ur_cmdr.destroy_node()
     rclpy.shutdown()
     mtexec.shutdown()

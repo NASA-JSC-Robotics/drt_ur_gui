@@ -57,10 +57,11 @@ class URGui(QMainWindow):
         timer_program_state.timeout.connect(self.status_program_state)
         timer_program_state.start(2000) # 0.5 hz
 
-        self.status_robot_mode()
-        self.status_safety_mode()
-        self.status_program_state()
+        # self.status_robot_mode()
+        # self.status_safety_mode()
+        # self.status_program_state()
         
+        # style sheet for white text on black bg in the text editor
         self.textEditor.setStyleSheet(
             """
             QPlainTextEdit {
@@ -86,20 +87,24 @@ class URGui(QMainWindow):
             service_name = response['service_name']
             res_content = response['content']
             if service_name == 'dashboard_client/get_robot_mode':
+                self.be.get_logger().info("Robot mode response pulled from queue, updating...")
                 robot_mode = ROBOT_MODES[res_content.robot_mode.mode]
                 self.show_robot_mode(robot_mode)
             elif service_name == 'dashboard_client/get_safety_mode':
+                self.be.get_logger().info("Safety mode response pulled from queue, updating...")
                 safety_mode = SAFETY_MODES[res_content.safety_mode.mode]
                 self.show_safety_mode(safety_mode)
             elif service_name == 'dashboard_client/program_state':
+                self.be.get_logger().info("Program state response pulled from queue, updating...")
                 program_state = res_content.state.state
                 self.show_program_state(program_state)
             else: # if response is not from a status service
+                self.be.get_logger().info(f"{service_name} response pulled from queue, processing...")
                 display_txt = []
                 display_txt.append(response['message']) # TODO: process success as color highlight? Or prefix?
                 res_fields = response['service_type'].Response.get_fields_and_field_types()
                 for field in res_fields.keys():
-                    display_txt.append(f"\v{field}: {getattr(res_content, field)}")
+                    display_txt.append(f"\n  └── {field}: {getattr(res_content, field)}")
                 display_txt = ''.join(display_txt)
                 self.addText(display_txt)
         except queue.Empty:
@@ -118,37 +123,38 @@ class URGui(QMainWindow):
     def addText(self, data):
         self.textEditor.appendPlainText(f"[{datetime.now().strftime('%H:%M:%S.%f')[:-3]}]")
         self.textEditor.appendPlainText(str(data))
+        self.textEditor.appendPlainText('\n')
         scrollbar = self.textEditor.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
         return
     
     @Slot()
     def brake_release_clicked(self):
-        self.addText("Brake release requested, calling...\n")
+        self.addText("Brake release requested, calling...")
         self.be.send_service_request('dashboard_client/brake_release')
         return
 
     @Slot()
     def play_clicked(self):
-        self.addText("Program play requested, calling...\n")
+        self.addText("Program play requested, calling...")
         self.be.send_service_request('dashboard_client/play')
         return
     
     @Slot()
     def connect_clicked(self):
-        self.addText("Dashboard connect requested, calling...\n")
+        self.addText("Dashboard connect requested, calling...")
         self.be.send_service_request('dashboard_client/connect')
         return
 
     @Slot()
     def unlock_pstop_clicked(self):
-        self.addText("Button 3 requested, calling...\n")
+        self.addText("Unlock protective stop requested, calling...")
         self.be.send_service_request('dashboard_client/unlock_protective_stop')
         return
     
     @Slot()
     def restart_safety_clicked(self):
-        self.addText("Button 3 requested, calling...\n")
+        self.addText("Restart safety requested, calling...")
         self.be.send_service_request('dashboard_client/restart_safety')
         return
 
