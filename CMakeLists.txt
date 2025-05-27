@@ -8,7 +8,7 @@ find_package(python_qt_binding REQUIRED)
 ament_python_install_package(${PROJECT_NAME})
 
 install(
-  DIRECTORY ui
+  DIRECTORY ui launch
   DESTINATION share/${PROJECT_NAME}
 )
 

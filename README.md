@@ -23,5 +23,8 @@ Currently all you can do in the GUI is make a selection of service calls.
 - QT vs tkinter - what do we do? 
     - emma leans towards pyqt and ros_qt_bindings
     - appearance does matter because this is a need in the community
- 
- 
+- Remapping and renaming
+    - Nodes can be renamed from the command line using ros-args (assuming you passed them in your script)
+    - `ros2 run drt_ur_gui run_mock_dbc.py --ros-args -r __node:=right_dashboard_client`
+        - Runs the mock dashboard client node but with the name `right_dashboard_client`
+        - Everything (services and stuff) get renamed too
