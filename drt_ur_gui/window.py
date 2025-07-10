@@ -75,7 +75,7 @@ class URGui(QMainWindow):
         self.b_connect.clicked.connect(self.connect_clicked)
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
-        #TODO: self.b_clearService.clicked.connect(
+        self.b_clearService.clicked.connect(self.clear_service_clicked)
         #TODO: self.b_send.clicked.connect(
         #TODO: self.b_watch.clicked.connect(
         return
@@ -132,7 +132,6 @@ class URGui(QMainWindow):
         self.serviceTree.expandAll()
         for col in range(self.serviceTree.columnCount()):
             self.serviceTree.resizeColumnToContents(col)
-            
         return
 
     def _consume_queue(self):
@@ -181,6 +180,17 @@ class URGui(QMainWindow):
         scrollbar = self.serviceMonitor.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
         return
+    
+    @Slot()
+    def clear_service_clicked(self):
+        for top_idx in range(self.serviceTree.topLevelItemCount()):
+            top_item = self.serviceTree.topLevelItem(top_idx)
+            for child_idx in range(top_item.childCount()):
+                child = top_item.child(child_idx)
+                editor = self.serviceTree.itemWidget(child, 2)
+                if isinstance(editor, QLineEdit):
+                    editor.clear()
+            
     
     @Slot()
     def brake_release_clicked(self):
