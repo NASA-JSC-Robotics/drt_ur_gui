@@ -1,8 +1,8 @@
 
 import os, sys, queue
 from datetime import datetime
-from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem
-from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer
+from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
+from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer, Qt
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
@@ -75,6 +75,9 @@ class URGui(QMainWindow):
         self.b_connect.clicked.connect(self.connect_clicked)
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
+        #TODO: self.b_clearService.clicked.connect(
+        #TODO: self.b_send.clicked.connect(
+        #TODO: self.b_watch.clicked.connect(
         return
 
     def _init_service_selector(self):
@@ -103,10 +106,9 @@ class URGui(QMainWindow):
     def _init_service_tree(self):
         self.serviceTree.setColumnCount(3)
         self.serviceTree.setHeaderLabels(["Name", "Type", "Data"])
+        # self.serviceTree.itemDoubleClicked.connect(self._service_tree_item_double_clicked)
         # TODO: Get serviceSelector initial selection and populate on start
         # TODO: Separate out serviceTree populator from _serviceSelected slot
-        # TODO: Auto expand tree on service selection
-        # TODO: Make datafield fillable for lowest level service tree items
         # TODO: Get user input and send service request on correct button press
         # TODO: Clear user input on button press
         # TODO: Add service request to watch table on button press
@@ -118,18 +120,20 @@ class URGui(QMainWindow):
         # get service type
         srv_type = self.all_services[srv_name]
         self.be.get_logger().info('\n' + f'{srv_type}' + '\n')
-        # breakdown service type content into QTreeWidgetItem
-        # add QTreeWidgetItem to QTreeWidget called serviceTree
         # TODO: need error catches here
         # TODO: needs a recursive function to handle arbitrary message structure depth
         self.serviceTree.clear()
         fields = srv_type.Request.get_fields_and_field_types()
-        tree_item = QTreeWidgetItem([srv_name])
+        pretty_srv_type = str(srv_type.__module__.split('.')[0]) + '/srv/' + str(srv_type.__name__)
+        srv_tree_item = QTreeWidgetItem(self.serviceTree, [srv_name, pretty_srv_type, ''])
         for field_name, field_type in fields.items():
-            tree_item.addChild(QTreeWidgetItem([field_name, field_type]))
-        self.serviceTree.insertTopLevelItems(0, [tree_item])
+            field_tree_item = QTreeWidgetItem(srv_tree_item, [field_name, field_type])
+            self.serviceTree.setItemWidget(field_tree_item, 2, QLineEdit())
+        self.serviceTree.expandAll()
+        for col in range(self.serviceTree.columnCount()):
+            self.serviceTree.resizeColumnToContents(col)
             
-        return # TODO: populate serviceTree with fields and description on textActivated from serviceSelector
+        return
 
     def _consume_queue(self):
         try:
