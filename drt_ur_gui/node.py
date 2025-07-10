@@ -21,7 +21,7 @@ class RemoteURCmdr(Node):
         self.get_logger().info("Starting remote_ur_commander node...")
         self.declare_parameter("dashboard_client_name", "dashboard_client")
         self.dbc_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
-        self.get_logger().info(f"Dashboard Client name is {self.dbc_name}")
+        self.get_logger().debug(f"Dashboard Client name is {self.dbc_name}")
         self.service_list = SERVICES
         self.service_clients = {}
         self.callbacks = {}
@@ -86,8 +86,8 @@ class RemoteURCmdr(Node):
                          "Skipping this argument."
                     )
                     continue
-        self.get_logger().info(f"Sending service request to '{name}")
-        if content: self.get_logger().info(f"with content: {content}")
+        self.get_logger().debug(f"Sending service request to '{name}")
+        if content: self.get_logger().debug(f"with content: {content}")
         future = client.call_async(req)
         future.add_done_callback(self.callbacks[name])
         return
@@ -101,7 +101,7 @@ class RemoteURCmdr(Node):
             'message': 'Service call failed',
             'content': None
         }
-        self.get_logger().info(f"Received response from {service_name}")
+        self.get_logger().debug(f"Received response from {service_name}")
         try:
             res = future.result()
             output['content'] = res
@@ -109,8 +109,8 @@ class RemoteURCmdr(Node):
             output['message'] = f"Received response from {service_name}"
         except Exception as e:
             output['message'] = f"Exception during service call {service_name}: {e}"
-            self.get_logger().info(f'Exception {e} while processing response for {service_name}')
+            self.get_logger().debug(f'Exception {e} while processing response for {service_name}')
         
-        self.get_logger().info(f"Response from {service_name} added to queue")
+        self.get_logger().debug(f"Response from {service_name} added to queue")
         self.response_queue.put(output)
         return

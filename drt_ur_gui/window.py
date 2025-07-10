@@ -116,10 +116,10 @@ class URGui(QMainWindow):
     @Slot(str)
     def _serviceSelected(self, srv_name):
         # get service full name (for free, from srv_name)
-        self.be.get_logger().info('\n' + srv_name + '\n') # if we're running from a launch file using simple print won't work here
+        self.be.get_logger().debug('\n' + srv_name + '\n') # if we're running from a launch file using simple print won't work here
         # get service type
         srv_type = self.all_services[srv_name]
-        self.be.get_logger().info('\n' + f'{srv_type}' + '\n')
+        self.be.get_logger().debug('\n' + f'{srv_type}' + '\n')
         # TODO: need error catches here
         # TODO: needs a recursive function to handle arbitrary message structure depth
         self.serviceTree.clear()
@@ -140,19 +140,19 @@ class URGui(QMainWindow):
             service_name = response['service_name']
             res_content = response['content']
             if service_name == self.be.get_full_service_name('get_robot_mode'):
-                self.be.get_logger().info("Robot mode response pulled from queue, updating...")
+                self.be.get_logger().debug("Robot mode response pulled from queue, updating...")
                 robot_mode = ROBOT_MODES[res_content.robot_mode.mode]
                 self.show_robot_mode(robot_mode)
             elif service_name == self.be.get_full_service_name('get_safety_mode'):
-                self.be.get_logger().info("Safety mode response pulled from queue, updating...")
+                self.be.get_logger().debug("Safety mode response pulled from queue, updating...")
                 safety_mode = SAFETY_MODES[res_content.safety_mode.mode]
                 self.show_safety_mode(safety_mode)
             elif service_name == self.be.get_full_service_name('program_state'):
-                self.be.get_logger().info("Program state response pulled from queue, updating...")
+                self.be.get_logger().debug("Program state response pulled from queue, updating...")
                 program_state = res_content.state.state
                 self.show_program_state(program_state)
             else: # if response is not from a status service
-                self.be.get_logger().info(f"{service_name} response pulled from queue, processing...")
+                self.be.get_logger().debug(f"{service_name} response pulled from queue, processing...")
                 display_txt = []
                 display_txt.append(response['message']) # TODO: process success as color highlight? Or prefix?
                 res_fields = response['service_type'].Response.get_fields_and_field_types()
@@ -167,7 +167,7 @@ class URGui(QMainWindow):
             return
         return
         
-    
+
     def setCell(self, row, column, data):
         item = QTableWidgetItem(str(data))
         self.watchTable.setItem(row, column, item)
