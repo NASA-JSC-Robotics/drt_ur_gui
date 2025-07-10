@@ -76,7 +76,7 @@ class URGui(QMainWindow):
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
         self.b_clearService.clicked.connect(self.clear_service_clicked)
-        #TODO: self.b_send.clicked.connect(
+        self.b_send.clicked.connect(self.send_service_clicked)
         #TODO: self.b_watch.clicked.connect(
         return
 
@@ -183,15 +183,27 @@ class URGui(QMainWindow):
     
     @Slot()
     def clear_service_clicked(self):
-        for top_idx in range(self.serviceTree.topLevelItemCount()):
-            top_item = self.serviceTree.topLevelItem(top_idx)
-            for child_idx in range(top_item.childCount()):
-                child = top_item.child(child_idx)
-                editor = self.serviceTree.itemWidget(child, 2)
-                if isinstance(editor, QLineEdit):
-                    editor.clear()
-            
-    
+        top_item = self.serviceTree.topLevelItem(0)
+        for child_idx in range(top_item.childCount()):
+            child = top_item.child(child_idx)
+            editor = self.serviceTree.itemWidget(child, 2)
+            if isinstance(editor, QLineEdit):
+                editor.clear()
+
+    @Slot()
+    def send_service_clicked(self):
+        srv_item = self.serviceTree.topLevelItem(0)
+        srv_name = srv_item.text(0)
+        srv_type = srv_item.text(1)
+        req_data = {}
+        for child_idx in range(srv_item.childCount()):
+            field_item = srv_item.child(child_idx)
+            field_name = field_item.text(0)
+            editor = self.serviceTree.itemWidget(field_item, 2)
+            data = editor.text()
+            req_data[field_name] = data
+        self.be.send_service_request(srv_name, content=req_data)
+        
     @Slot()
     def brake_release_clicked(self):
         self.addText("Brake release requested, calling...")
