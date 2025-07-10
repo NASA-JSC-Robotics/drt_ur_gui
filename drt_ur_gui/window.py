@@ -64,15 +64,6 @@ class URGui(QMainWindow):
         return
 
     def _init_text_editor(self):
-        # self.serviceMonitor.setStyleSheet(
-        #     """
-        #     QPlainTextEdit {
-        #         background-color: #000000; # black bg
-        #         color:            #FFFFFF; # white text
-        #         font-family:      monospace;
-        #         font-size:        10pt;
-        #         }
-        #     """)
         self.addText('Welcome to the Dexterous Robotics Remote UR GUI!')
         return
     
@@ -112,6 +103,13 @@ class URGui(QMainWindow):
     def _init_service_tree(self):
         self.serviceTree.setColumnCount(3)
         self.serviceTree.setHeaderLabels(["Name", "Type", "Data"])
+        # TODO: Get serviceSelector initial selection and populate on start
+        # TODO: Separate out serviceTree populator from _serviceSelected slot
+        # TODO: Auto expand tree on service selection
+        # TODO: Make datafield fillable for lowest level service tree items
+        # TODO: Get user input and send service request on correct button press
+        # TODO: Clear user input on button press
+        # TODO: Add service request to watch table on button press
     
     @Slot(str)
     def _serviceSelected(self, srv_name):
