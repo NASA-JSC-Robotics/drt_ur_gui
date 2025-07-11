@@ -161,7 +161,10 @@ class URGui(QMainWindow):
         srv_tree_item = QTreeWidgetItem(self.serviceTree, [srv_name, pretty_srv_type, ''])
         for field_name, field_type in fields.items():
             field_tree_item = QTreeWidgetItem(srv_tree_item, [field_name, field_type])
-            self.serviceTree.setItemWidget(field_tree_item, 2, QLineEdit())
+            field_input_widget = QLineEdit()
+            if 'load_program' in srv_name:
+                field_input_widget.setText(self.be.get_parameter('program').get_parameter_value().string_value)
+            self.serviceTree.setItemWidget(field_tree_item, 2, field_input_widget)
         self.serviceTree.expandAll()
         for col in range(self.serviceTree.columnCount()):
             self.serviceTree.resizeColumnToContents(col)

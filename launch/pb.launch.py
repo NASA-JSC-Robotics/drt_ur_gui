@@ -33,21 +33,39 @@ def generate_launch_description():
     config = os.path.join(
         get_package_share_directory('drt_ur_gui'),
         'config',
-        'clr.yaml'
+        'pb.yaml'
     )
     
-    gui_node = Node(
+    right_gui_node = Node(
         package = "drt_ur_gui",
         executable="run_gui.py",
+        name="right_drt_ur_gui",
         output='screen',
         namespace = ns,
         parameters = [config]
     )
-    mock_dbc_node = Node(
+    left_gui_node = Node(
+        package = "drt_ur_gui",
+        executable="run_gui.py",
+        name="left_drt_ur_gui",
+        output='screen',
+        namespace = ns,
+        parameters = [config]
+    )
+    right_mock_dbc_node = Node(
         package= "drt_ur_gui",
         executable="run_mock_dbc.py",
+        name="right_dashboard_client",
         output='screen',
         namespace = ns,
         condition=IfCondition(use_fake_hardware)
     )
-    return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node])
+    left_mock_dbc_node = Node(
+        package= "drt_ur_gui",
+        executable="run_mock_dbc.py",
+        name="left_dashboard_client",
+        output='screen',
+        namespace = ns,
+        condition=IfCondition(use_fake_hardware)
+    )
+    return LaunchDescription(declared_arguments + [right_gui_node, left_gui_node, right_mock_dbc_node, left_mock_dbc_node])
