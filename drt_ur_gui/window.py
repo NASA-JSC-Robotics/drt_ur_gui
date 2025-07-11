@@ -28,6 +28,9 @@ class URGui(QMainWindow):
         self.resources_path = os.path.join(share_path, "resources")
         self._load_ui(ui_file_path)
         self._init_window()
+        self._init_logo()
+        self._init_robot_label()
+        self._init_arm_label()
         self._init_text_editor()
         self._init_status_table()
         self._init_queue_consumer()
@@ -45,11 +48,31 @@ class URGui(QMainWindow):
         return
     
     def _init_window(self):
-        self.label_window.setText('ghawiolerghauweglhauewghauweghauwlhguawlerhg')
-        logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
-        self.label_window.setPixmap(logo)
-        # self.label_window.setScaledContents(True)
-        pass
+        self.setWindowTitle(self.be.get_parameter('window.name').get_parameter_value().string_value)
+        window_stylesheet = self.be.get_parameter('window.stylesheet').get_parameter_value().string_value
+        if window_stylesheet != '':
+            self.setStyleSheet(window_stylesheet)
+        return
+    def _init_logo(self):
+        logo_filename = self.be.get_parameter('logo_file_name').get_parameter_value().string_value
+        if logo_filename != '':
+            logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
+            self.label_logo.setPixmap(logo)
+        return
+    
+    def _init_robot_label(self):
+        self.label_robot.setText(self.be.get_parameter('robot.name').get_parameter_value().string_value)
+        robot_stylesheet = self.be.get_parameter('robot.stylesheet').get_parameter_value().string_value
+        if robot_stylesheet != '':
+            self.label_robot.setStyleSheet(robot_stylesheet)
+        return
+    
+    def _init_arm_label(self):
+        self.label_arm.setText(self.be.get_parameter('arm.name').get_parameter_value().string_value)
+        arm_stylesheet = self.be.get_parameter('arm.stylesheet').get_parameter_value().string_value
+        if arm_stylesheet != '':
+            self.label_arm.setStyleSheet(arm_stylesheet)
+        return
     
     def _init_status_table(self):
         self.watchTable.setRowCount(3)

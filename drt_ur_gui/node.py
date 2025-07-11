@@ -19,15 +19,30 @@ class RemoteURCmdr(Node):
     def __init__(self):
         super().__init__('remote_ur_commander')
         self.get_logger().info("Starting remote_ur_commander node...")
-        self.declare_parameter("dashboard_client_name", "dashboard_client")
-        self.dbc_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
-        self.get_logger().debug(f"Dashboard Client name is {self.dbc_name}")
+        self._init_params()
         self.service_list = SERVICES
         self.service_clients = {}
         self.callbacks = {}
         self.response_queue = queue.Queue()
         self.generate_services_dynamically()
 
+    def _init_params(self):
+        self.declare_parameters(
+            namespace = '',
+            parameters = [
+                ('dashboard_client_name', 'dashboard_client'),
+                ('window.name', 'DRT Remote Commander'),
+                ('window.stylesheet', ''),
+                ('robot.name', 'UR Arm'),
+                ('robot.stylesheet', ''),
+                ('arm.name', 'Arm 0'),
+                ('arm.stylesheet', ''),
+                ('program', 'default.urp'),
+                ('logo_file_name', '')
+            ]
+        )
+        self.dbc_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
+    
     def get_full_service_name(self, srv):
         return '/'.join([self.dbc_name, srv])
 
