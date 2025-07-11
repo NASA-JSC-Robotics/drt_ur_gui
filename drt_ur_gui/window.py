@@ -3,6 +3,7 @@ import os, sys, queue
 from datetime import datetime
 from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer, Qt
+from python_qt_binding.QtGui import QPixmap
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
@@ -22,9 +23,11 @@ class URGui(QMainWindow):
         super().__init__()
         self.be = backend
         self.all_services = {self.be.get_full_service_name(item['name']):item['type'] for item in SERVICES}
-
-        ui_file_path = os.path.join(get_package_share_directory("drt_ur_gui"), "ui", "drt_ur.ui")
+        share_path = get_package_share_directory("drt_ur_gui")
+        ui_file_path = os.path.join(share_path, "ui", "drt_ur.ui")
+        self.resources_path = os.path.join(share_path, "resources")
         self._load_ui(ui_file_path)
+        self._init_window()
         self._init_text_editor()
         self._init_status_table()
         self._init_queue_consumer()
@@ -40,6 +43,13 @@ class URGui(QMainWindow):
         loadUi(ui_file, self)
         ui_file.close()
         return
+    
+    def _init_window(self):
+        self.label_window.setText('ghawiolerghauweglhauewghauweghauwlhguawlerhg')
+        logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
+        self.label_window.setPixmap(logo)
+        # self.label_window.setScaledContents(True)
+        pass
     
     def _init_status_table(self):
         self.watchTable.setRowCount(3)
