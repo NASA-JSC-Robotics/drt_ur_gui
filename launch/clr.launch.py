@@ -33,7 +33,7 @@ def generate_launch_description():
     config = os.path.join(
         get_package_share_directory('drt_ur_gui'),
         'config',
-        'one_arm.yaml'
+        'clr.yaml'
     )
     print(config)
     
@@ -52,4 +52,3 @@ def generate_launch_description():
         condition=IfCondition(use_fake_hardware)
     )
     return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node])
-

@@ -17,8 +17,8 @@ from drt_ur_gui import SERVICES
 
 class RemoteURCmdr(Node):
     def __init__(self):
-        super().__init__('remote_ur_commander')
-        self.get_logger().info("Starting remote_ur_commander node...")
+        super().__init__('drt_ur_gui')
+        self.get_logger().info("Starting drt_ur_gui node...")
         self._init_params()
         self.service_list = SERVICES
         self.service_clients = {}
