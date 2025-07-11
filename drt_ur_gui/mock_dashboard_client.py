@@ -63,7 +63,7 @@ class FakeDashboardClient(Node):
             self.get_logger().debug(f'mode = {mode}')
             mode_rate.sleep()
             self.robot_mode.mode = num
-            self.get_logger().info(f'Robot mode changed to {ROBOT_MODES[num]}')
+            self.get_logger().debug(f'Robot mode changed to {ROBOT_MODES[num]}')
         mode_rate.destroy()
         return
     
@@ -229,14 +229,14 @@ class FakeDashboardClient(Node):
 
     def cb_AddToLog(self, req, res):
 
-        self.get_logger().info(f'Incoming request: add_to_log: {req.message}')
+        self.get_logger().debug(f'Incoming request: add_to_log: {req.message}')
         res.answer = 'added to log'
         res.success = True
         return res
     
     def cb_BrakeRelease(self, req, res):
         req
-        self.get_logger().info('Incoming request: brake_release')
+        self.get_logger().debug('Incoming request: brake_release')
         br_T = threading.Thread(target = self._changeRobotMode, args=(7,), daemon = True)
         br_T.start()
         res.success = True
@@ -245,35 +245,35 @@ class FakeDashboardClient(Node):
     
     def cb_ClearOpMode(self, req, res):
         req
-        self.get_logger().info('Incoming request: clear_operational_mode')
+        self.get_logger().debug('Incoming request: clear_operational_mode')
         res.success = True
         res.message = 'operational mode cleared'
         return res
     
     def cb_ClosePopup(self, req, res):
         req
-        self.get_logger().info('Incoming request: close_popup')
+        self.get_logger().debug('Incoming request: close_popup')
         res.success = True
         res.message = 'popup closed'
         return res
     
     def cb_CloseSafetyPopup(self, req, res):
         req
-        self.get_logger().info('Incoming request: close_safety_popup')
+        self.get_logger().debug('Incoming request: close_safety_popup')
         res.success = True
         res.message = 'safety popup closed'
         return res
     
     def cb_Connect(self, req, res):
         req
-        self.get_logger().info('Incoming request: connect')
+        self.get_logger().debug('Incoming request: connect')
         res.success = True
         res.message = 'connected'
         return res
     
     def cb_GetLoadedProgram(self, req, res):
         req
-        self.get_logger().info('Incoming request: get_loaded_program')
+        self.get_logger().debug('Incoming request: get_loaded_program')
         res.answer = 'program loaded'
         res.program_name = 'program.urp'
         res.success = True
@@ -281,7 +281,7 @@ class FakeDashboardClient(Node):
     
     def cb_GetRobotMode(self, req, res):
         req
-        self.get_logger().info('Incoming request: get_robot_mode')
+        self.get_logger().debug('Incoming request: get_robot_mode')
         res.robot_mode = self.robot_mode
         res.answer = "answer"
         res.success = True
@@ -289,68 +289,68 @@ class FakeDashboardClient(Node):
     
     def cb_GetSafetyMode(self, req, res):
         req
-        self.get_logger().info('Incoming request: get_safety_mode')
+        self.get_logger().debug('Incoming request: get_safety_mode')
         res.safety_mode = self.safety_mode
         res.answer = "answer"
         res.success = True
         return res
     
     def cb_LoadInstallation(self, req, res):
-        self.get_logger().info(f'Incoming request: load_installation:{req.filename}')
+        self.get_logger().debug(f'Incoming request: load_installation:{req.filename}')
         res.answer("installation loaded")
         res.success = True
         return res
     
     def cb_LoadProgram(self, req, res):
-        self.get_logger().info(f'Incoming request: load_program:{req.filename}')
+        self.get_logger().debug(f'Incoming request: load_program:{req.filename}')
         res.answer("program loaded")
         res.success = True
         return res
     
     def cb_Pause(self, req ,res):
-        self.get_logger().info('Incoming request: pause')
+        self.get_logger().debug('Incoming request: pause')
         self._changeProgramState('PAUSED')
         res.success = True
         res.message = "program paused"
         return res
     
     def cb_Play(self, req, res):
-        self.get_logger().info('Incoming request: play')
+        self.get_logger().debug('Incoming request: play')
         self._changeProgramState('PLAYING')
         res.success = True
         res.message = "program playing"
         return res
     
     def cb_Popup(self, req, res):
-        self.get_logger().info(f'Incoming request: popup:{req.message}')
+        self.get_logger().debug(f'Incoming request: popup:{req.message}')
         res.answer = "pop up opened"
         res.success = True
         return res
     
     def cb_PowerOff(self, req, res):
         req
-        self.get_logger().info('Incoming request: power_off')
+        self.get_logger().debug('Incoming request: power_off')
         res.success = True
         res.message = "robot powered off"
         return res
     
     def cb_PowerOn(self, req, res):
         req
-        self.get_logger().info('Incoming request: power_on')
+        self.get_logger().debug('Incoming request: power_on')
         res.success = True
         res.message = "robot powered on"
         return res
     
     def cb_ProgramRunning(self, req, res):
         req
-        self.get_logger().info('Incoming request: program_running')
+        self.get_logger().debug('Incoming request: program_running')
         res.program_running = True
         res.success = True
         return res
     
     def cb_ProgramSaved(self, req, res):
         req
-        self.get_logger().info('Incoming request: program_saved')
+        self.get_logger().debug('Incoming request: program_saved')
         res.program_name = 'program.urp'
         res.program_saved = True
         res.success = True
@@ -358,7 +358,7 @@ class FakeDashboardClient(Node):
     
     def cb_ProgramState(self, req, res):
         req
-        self.get_logger().info('Incoming request: program_state')
+        self.get_logger().debug('Incoming request: program_state')
         res.state = self.program_state
         res.program_name = self.program_name
         res.answer = 'answer'
@@ -367,40 +367,40 @@ class FakeDashboardClient(Node):
     
     def cb_Quit(self, req, res):
         req
-        self.get_logger().info('Incoming request: quit')
+        self.get_logger().debug('Incoming request: quit')
         res.answer = "quitting program"
         res.program_name = "program.urp"
         res.success = True
         return res
     
     def cb_RawRequest(self, req, res):
-        self.get_logger().info(f'Incoming request: raw_request:{req.query}')
+        self.get_logger().debug(f'Incoming request: raw_request:{req.query}')
         res.answer = "raw request response"
         return res
     
     def cb_RestartSafety(self, req, res):
         req
-        self.get_logger().info('Incoming request: restart_safety')
+        self.get_logger().debug('Incoming request: restart_safety')
         res.success = True
         res.message = 'restarting safety'
         return res
     
     def cb_Shutdown(self, req, res):
         req
-        self.get_logger().info('Incoming request: shutdown')
+        self.get_logger().debug('Incoming request: shutdown')
         res.success = True
         res.message = "shutting down"
         return res
     
     def cb_Stop(self, req, res):
-        self.get_logger().info('Incoming request: stop')
+        self.get_logger().debug('Incoming request: stop')
         self._changeProgramState('STOPPED')
         res.success = True
         res.message = "stopping program"
         return res
     
     def cb_UnlockPStop(self, req, res):
-        self.get_logger().info('Incoming request: unlock_protective_stop')
+        self.get_logger().debug('Incoming request: unlock_protective_stop')
         res.success = True
         res.message = "unlocking protective stop"
         return res
