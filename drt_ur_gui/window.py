@@ -3,7 +3,7 @@ import os, sys, queue
 from datetime import datetime
 from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer, Qt
-from python_qt_binding.QtGui import QPixmap
+from python_qt_binding.QtGui import QPixmap, QColor
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
@@ -204,8 +204,10 @@ class URGui(QMainWindow):
         return
         
 
-    def setCell(self, row, column, data):
+    def setCell(self, row, column, data, color:str = None):
         item = QTableWidgetItem(str(data))
+        if color:
+            item.setBackground(QColor(color))
         self.watchTable.setItem(row, column, item)
         return
     
@@ -283,13 +285,42 @@ class URGui(QMainWindow):
         return
 
     def show_robot_mode(self, mode: str):
-        self.setCell(0, 1, mode)
+        # TODO: Needs a better way to spec color, maybe a dict member?
+        red_modes = ['DISCONNECTED', 'CONFIRM_SAFETY', 'BOOTING', 'POWER_OFF']
+        yellow_modes = ['POWER_ON', 'IDLE', 'BACKDRIVE']
+        green_modes = ['RUNNING']
+        blue_modes = ['UPDATING_FIRMWARE', 'FREEDRIVE'] # TODO: Do these ever actually show up, is FREEDRIVE correct?
+        if mode in red_modes:
+            color = "red"
+        elif mode in yellow_modes:
+            color = "yellow"
+        elif mode in green_modes:
+            color = "green"
+        elif mode in blue_modes:
+            color = "blue"
+        else:
+            color = None
+        self.setCell(0, 1, mode, color)
         return
-    
+
     def show_safety_mode(self, mode: str):
-        self.setCell(1, 1, mode)
+        green_modes = ['NORMAL']
+        if mode not in green_modes:
+            color = "red"
+        else:
+            color = "green"
+        self.setCell(1, 1, mode, color)
         return    
     
     def show_program_state(self, state: str):
-        self.setCell(2, 1, state)
+        ['STOPPED', 'PAUSED', 'PLAYING']
+        if state == 'STOPPED':
+            color = "red"
+        elif state == 'PAUSED':
+            color = "yellow"
+        elif state == 'PLAYING':
+            color = "green"
+        else:
+            color = None
+        self.setCell(2, 1, state, color)
         return
