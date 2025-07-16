@@ -1,0 +1,3 @@
+[submodule "RTDE_Python_Client_Library"]
+	path = RTDE_Python_Client_Library
+	url = https://github.com/UniversalRobots/RTDE_Python_Client_Library.git
