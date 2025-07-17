@@ -29,11 +29,16 @@ def generate_launch_description():
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     ns = LaunchConfiguration("ns")
 
-    
-    config = os.path.join(
+    config_right = os.path.join(
         get_package_share_directory('drt_ur_gui'),
         'config',
-        'pb.yaml'
+        'pb_right.yaml'
+    )
+
+    config_left = os.path.join(
+        get_package_share_directory('drt_ur_gui'),
+        'config',
+        'pb_left.yaml'
     )
     
     right_gui_node = Node(
@@ -42,7 +47,7 @@ def generate_launch_description():
         name="right_drt_ur_gui",
         output='screen',
         namespace = ns,
-        parameters = [config]
+        parameters = [config_right]
     )
     left_gui_node = Node(
         package = "drt_ur_gui",
@@ -50,7 +55,7 @@ def generate_launch_description():
         name="left_drt_ur_gui",
         output='screen',
         namespace = ns,
-        parameters = [config]
+        parameters = [config_left]
     )
     right_mock_dbc_node = Node(
         package= "drt_ur_gui",
