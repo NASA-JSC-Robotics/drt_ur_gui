@@ -3,7 +3,7 @@ import os, sys, queue
 from datetime import datetime
 from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
 from python_qt_binding.QtCore import QFile, QIODevice, Slot, QTimer, Qt
-from python_qt_binding.QtGui import QPixmap, QColor
+from python_qt_binding.QtGui import QPixmap, QColor, QIcon
 from python_qt_binding import loadUi
 
 from ament_index_python.packages import get_package_share_directory
@@ -58,6 +58,14 @@ class URGui(QMainWindow):
         if logo_filename != '':
             logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
             self.label_logo.setPixmap(logo)
+        return
+    def _init_logo(self):
+        logo_filename = self.be.get_parameter('logo_file_name').get_parameter_value().string_value
+        if logo_filename != '':
+            logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
+            icon = QIcon(os.path.join(self.resources_path, 'ur_gui_icon.png'))
+            self.label_logo.setPixmap(logo)
+            self.setWindowIcon(icon)
         return
     
     def _init_robot_label(self):
