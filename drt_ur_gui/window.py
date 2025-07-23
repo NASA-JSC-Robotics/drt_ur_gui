@@ -122,26 +122,9 @@ class URGui(QMainWindow):
         return
 
     def _init_service_selector(self):
-        taken_services = [
-            'brake_release',
-            'play',
-            'connect',
-            'unlock_protective_stop',
-            'restart_safety',
-            'get_robot_mode',
-            'get_safety_mode',
-            'program_state',
-            ]
-        taken_services = [self.be.get_full_service_name(srv) for srv in taken_services]
-        selector_services = list(set(self.all_services.keys()) - set(taken_services))
+        selector_services = list(set(self.all_services.keys()))
         selector_services.sort()
-        if len(selector_services) == 0:
-            return # no services to add to service selector
-        else:
-            self.serviceSelector.addItems(selector_services)
-        # NOTE: textActivated should signal "when the user chooses an item in the combobox. The item's text is passed"
-        #       "If you need to know when the choice actually changes, use signal currentIndexChanged() or currentTextChanged()"
-        #       https://doc.qt.io/qtforpython-6.5/PySide6/QtWidgets/QComboBox.html#PySide6.QtWidgets.PySide6.QtWidgets.QComboBox.textActivated
+        self.serviceSelector.addItems(selector_services)
         self.serviceSelector.currentTextChanged.connect(self._serviceSelected)
         self._serviceSelected(self.serviceSelector.currentText())
         return
