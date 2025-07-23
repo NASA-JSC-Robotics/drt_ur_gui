@@ -296,10 +296,10 @@ class URGui(QMainWindow):
 
     def show_robot_mode(self, mode: str):
         # TODO: Needs a better way to spec color, maybe a dict member?
-        red_modes = ['DISCONNECTED', 'CONFIRM_SAFETY', 'BOOTING', 'POWER_OFF']
-        yellow_modes = ['POWER_ON', 'IDLE', 'BACKDRIVE']
+        red_modes = ['DISCONNECTED', 'CONFIRM_SAFETY', 'POWER_OFF']
+        yellow_modes = ['BOOTING', 'POWER_ON', 'IDLE']
         green_modes = ['RUNNING']
-        blue_modes = ['UPDATING_FIRMWARE', 'FREEDRIVE'] # TODO: Do these ever actually show up, is FREEDRIVE correct?
+        blue_modes = ['UPDATING_FIRMWARE', 'BACKDRIVE', 'FREEDRIVE'] # TODO: Do these ever actually show up, is FREEDRIVE correct?
         if mode in red_modes:
             color = "red"
         elif mode in yellow_modes:
