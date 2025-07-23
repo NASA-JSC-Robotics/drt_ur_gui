@@ -224,9 +224,7 @@
            <item>
             <widget class="QTreeWidget" name="serviceTree">
              <property name="styleSheet">
-              <string notr="true">background-color: rgb(0, 0, 0);
-color: rgb(255, 255, 255);
-font: 10pt "Monospace";</string>
+              <string notr="true">font: 10pt "Monospace";</string>
              </property>
              <property name="headerHidden">
               <bool>false</bool>
@@ -314,9 +312,8 @@ font: 10pt "Monospace";</string>
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The service montior. Displays timestamped service requests and responses as they are made or recieved&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="styleSheet">
-         <string notr="true">background-color: rgb(0, 0, 0);
-font: 10pt "Monospace";
-color: rgb(255, 255, 255);</string>
+         <string notr="true">font: 10pt "Monospace";
+</string>
         </property>
         <property name="readOnly">
          <bool>true</bool>
@@ -343,9 +340,7 @@ color: rgb(255, 255, 255);</string>
         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;rosout Monitor&lt;/p&gt;&lt;p&gt;The rosout stream is continuously monitored and filtered for messages of interest which are displayed here&lt;/p&gt;&lt;p&gt;NOT YET IMPLEMENTED &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="styleSheet">
-        <string notr="true">background-color: rgb(0, 0, 0);
-color: rgb(255, 255, 255);
-font: 10pt "Monospace";</string>
+        <string notr="true">font: 10pt "Monospace";</string>
        </property>
        <property name="readOnly">
         <bool>true</bool>
