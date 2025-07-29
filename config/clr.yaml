@@ -1,8 +1,0 @@
-drt_ur_gui:
-  ros__parameters:
-    dashboard_client_name: "dashboard_client"
-    window.name: "CLR ChonkUR Remote Commander"
-    robot.name: "CLR"
-    arm.name: "ChonkUR"
-    program: "ext_ctrl.urp"
-    logo_file_name: 'iMETRO_full.png'
