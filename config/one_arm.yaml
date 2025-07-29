@@ -4,11 +4,11 @@ drt_ur_gui:
     window.name: "DRT UR Remote Commander: Single Arm Testing Configuration"
     window.stylesheet: |
       QMainWindow {
-        background-color: #darkgray;
+        background-color: darkgrey;
         color: #000000;
       }
       QPlainTextEdit {
-        background-color: #lightgray;
+        background-color: lightgrey;
         color: #000000;
         font-size: 8px;
       }
