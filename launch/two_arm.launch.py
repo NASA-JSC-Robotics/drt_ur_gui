@@ -3,26 +3,14 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
 
 from drt_ur_gui import SERVICES
 
 
 def generate_launch_description():
     declared_arguments = []
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "dashboard_client_one_name",
-            default_value="right_dashboard_client",
-            description="Name of the first dashboard client node"
-        )
-    )
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "dashboard_client_two_name",
-            default_value="left_dashboard_client",
-            description="Name of the second dashboard client node"
-        )
-    )
     declared_arguments.append(
         DeclareLaunchArgument(
             "use_fake_hardware",
@@ -39,54 +27,62 @@ def generate_launch_description():
         )
     )
     
-    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
+    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+    ns = LaunchConfiguration("ns")
     
-def launch_setup(context, *args, **kwargs):
-    dashboard_client_one_name = LaunchConfiguration("dashboard_client_one_name").perform(context)
-    dashboard_client_two_name = LaunchConfiguration("dashboard_client_two_name").perform(context)
-    
-    use_fake_hardware = LaunchConfiguration("use_fake_hardware").perform(context)
-    ns = LaunchConfiguration("ns").perform(context)
-    
-    arm_one_nodes = [
+    config_right = os.path.join(
+        get_package_share_directory('drt_ur_gui'),
+        'config',
+        'two_arm_right.yaml'
+    )
+
+    config_left = os.path.join(
+        get_package_share_directory('drt_ur_gui'),
+        'config',
+        'two_arm_left.yaml'
+    )
+
+    right_arm_nodes = [
         Node(
             package = "drt_ur_gui",
             executable="run_gui.py",
             name="right_remote_ur_commander",
             output='screen',
             namespace = ns,
-            parameters=[
-                {'dashboard_client_name': dashboard_client_one_name}
-            ],
+            parameters=[config_right],
         ),
         Node(
             package = "drt_ur_gui",
             executable = "run_mock_dbc.py",
-            name = dashboard_client_one_name,
+            name = "left_dashboard_client", # must match dashboard_client_name in config/two_arm_right.yaml
             output = 'screen',
             namespace = ns,
             condition = IfCondition(use_fake_hardware)
         )
     ]
     
-    arm_two_nodes = [
+    left_arm_nodes = [
         Node(
             package = "drt_ur_gui",
             executable = "run_gui.py",
             name = "left_remote_ur_commander",
             output = 'screen',
             namespace = ns,
-            parameters=[
-                {'dashboard_client_name': dashboard_client_two_name}
-            ]
+            parameters=[config_left]
         ),
         Node(
             package = "drt_ur_gui",
             executable = "run_mock_dbc.py",
-            name = dashboard_client_two_name,
+            name = "right_dashboard_client",
             output = 'screen',
             namespace = ns,
             condition = IfCondition(use_fake_hardware)
         )
     ]
-    return arm_one_nodes + arm_two_nodes
+    
+    nodes = [
+        left_arm_nodes +
+        right_arm_nodes
+        ]
+    
+    return LaunchDescription(declared_arguments + nodes)
