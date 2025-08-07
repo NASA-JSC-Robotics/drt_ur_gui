@@ -6,22 +6,34 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 
 from std_srvs.srv import Trigger
 from ur_dashboard_msgs.msg import RobotMode, SafetyMode, ProgramState
-from ur_dashboard_msgs.srv import (
-    AddToLog,
-    GetRobotMode,
-    Load,
-    GetSafetyMode,
-    IsProgramRunning,
-    GetProgramState,
-    Popup,
-    RawRequest,
-    GetLoadedProgram,
-    IsProgramSaved,
+from ur_dashboard_msgs.srv import  (AddToLog,
+                                    GetLoadedProgram,
+                                    GetProgramState,
+                                    GetRobotMode,
+                                    GetSafetyMode,
+                                    IsProgramRunning,
+                                    IsProgramSaved,
+                                    Load,
+                                    Popup,
+                                    RawRequest,
     )
 
 from drt_ur_gui.window import ROBOT_MODES, SAFETY_MODES
 
-class FakeDashboardClient(Node):
+class MockDashboardClient(Node):
+    """Imitate dashboard_client node features to test communication with UR.
+    
+    Provides dashboard_client services and mimics real dashboard_client responses.
+    Includes internal simulation of UR arm state that responds to service requests.
+    
+    Attributes:
+    -----------
+    robot_mode (ur_dashboard_msgs.msg.RobotMode): Holds the simulated UR robot mode
+    program_state (ur_dashboard_msgs.msg.ProgramState): Holds the simulated UR program state
+    safety_mode (ur_dashboard_msgs.msg.SafetyMode): Holds the simulated UR safety mode
+    program_name (string): Holds the simulated program name that is currently loaded to the UR ("<unnamed>.urp" on startup)
+    
+    """
     def __init__(self):
         super().__init__('dashboard_client')
         self.r_cbg = ReentrantCallbackGroup()
@@ -29,6 +41,8 @@ class FakeDashboardClient(Node):
         self._initSrvs()
         
     def _initStates(self):
+        """Creates and initializes attributes for simulating internal UR state
+        """
         self.robot_mode = RobotMode()
         self.robot_mode.mode = RobotMode.POWER_OFF # = 3
         self.program_state = ProgramState()
@@ -39,24 +53,24 @@ class FakeDashboardClient(Node):
         return
         
     def _changeRobotMode(self, target_mode: int):
-        mode_rate = self.create_rate(0.25)
-        init_mode = self.robot_mode.mode
-        if target_mode == init_mode: # if robot is already in target mode
+        mode_rate = self.create_rate(0.25) # robot_mode_change per second in Hz (0.25 = 1 mode change every 4 seconds)
+        current_mode = self.robot_mode.mode
+        if target_mode == current_mode: # if robot is already in target mode
             self.get_logger().warning(f"Mode change to {ROBOT_MODES[target_mode]} was requested, but robot is already in that mode, skipping...")
             return
-        elif target_mode > init_mode: # Target mode is elevated wrt current mode
+        elif target_mode > current_mode: # Target mode is elevated wrt current mode
             iter_modes = itertools.filterfalse(
-                            lambda x: x[0] < init_mode or
-                                        x[0] == RobotMode.BACKDRIVE or
-                                        x[0] > target_mode,
-                                        sorted(ROBOT_MODES.items())
+                                lambda x:   x[0] < current_mode or
+                                            x[0] == RobotMode.BACKDRIVE or
+                                            x[0] > target_mode,
+                                                sorted(ROBOT_MODES.items())
             )
         else: # Target mode is degraded wrt current mode
             iter_modes = itertools.filterfalse(
-                            lambda x: x[0] > init_mode or
+                            lambda x:   x[0] > current_mode or
                                         x[0] == RobotMode.BACKDRIVE or
                                         x[0] < target_mode,
-                                        sorted(ROBOT_MODES.items(), reverse=True)
+                                            sorted(ROBOT_MODES.items(), reverse=True)
             )
         for num, mode in iter_modes:
             self.get_logger().debug(f'num = {num}')
@@ -74,6 +88,7 @@ class FakeDashboardClient(Node):
             return
         else:
             self.program_state.state = target_state
+
         return
         
     def _initSrvs(self):
@@ -193,9 +208,10 @@ class FakeDashboardClient(Node):
             callback_group=self.r_cbg)
 
         self.s_quit = self.create_service(
-            GetLoadedProgram, # seems wrong but this is what the doc says the type is, probably is Trigger ir, callback_group=self.r_cbgl 
+            GetLoadedProgram, # seems wrong but this is what the doc says the type is, probably is Trigger irl
             '~/quit', 
-            self.cb_Quit) 
+            self.cb_Quit)
+            # TODO: callback group?
 
         self.s_rawrequest = self.create_service(
             RawRequest, 
