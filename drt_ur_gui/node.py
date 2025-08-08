@@ -1,13 +1,20 @@
 
+# TODO: change filename to something more descriptive
+
 import functools
 import queue
 
 # from example_interfaces.srv import AddTwoInts
-from ur_dashboard_msgs.srv import (
-    Popup, AddToLog, GetRobotMode,
-    Load, IsProgramSaved, RawRequest,
-    GetLoadedProgram, IsProgramRunning,
-    GetProgramState, GetSafetyMode
+from ur_dashboard_msgs.srv import  (AddToLog,
+                                    GetLoadedProgram,
+                                    GetProgramState,
+                                    GetRobotMode,
+                                    GetSafetyMode,
+                                    IsProgramRunning,
+                                    IsProgramSaved,
+                                    Load,
+                                    Popup,
+                                    RawRequest,
 )    
 from std_srvs.srv import Trigger
 import rclpy
@@ -16,6 +23,8 @@ from rclpy.node import Node
 from drt_ur_gui import SERVICES
 
 class RemoteURCmdr(Node):
+    # TODO: Docstring
+    # TODO: shutdown or __del__ cleanup function
     def __init__(self):
         super().__init__('drt_ur_gui')
         self.get_logger().info("Starting drt_ur_gui node...")
@@ -41,10 +50,11 @@ class RemoteURCmdr(Node):
                 ('logo_file_name', '')
             ]
         )
-        self.dbc_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
+        self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
     
     def get_full_service_name(self, srv):
-        return '/'.join([self.dbc_name, srv])
+        # TODO: pathlib or os.path.join here
+        return '/'.join([self.dashboard_client_name, srv])
 
     def generate_services_dynamically(self):
         self.get_logger().info("Generating services clients...")
@@ -79,6 +89,7 @@ class RemoteURCmdr(Node):
             bad_response['message'] = f"Service '{name}' is not ready."
             self.response_queue.put(bad_response)
             return
+        # TODO: req = client.srv_type.Request()
         req_type = client.srv_type.Request
         req = req_type()
         # populate service request from content dictionary
@@ -96,6 +107,7 @@ class RemoteURCmdr(Node):
                         self.response_queue.put(bad_response)
                         return
                 else: # req does not have 'field' attribute
+                    # TODO: warn -> ERROR
                     self.get_logger().warn(
                         f"Request field '{field}' not found in service '{name}' request message. "
                          "Skipping this argument."
@@ -103,6 +115,7 @@ class RemoteURCmdr(Node):
                     continue
         self.get_logger().debug(f"Sending service request to '{name}")
         if content: self.get_logger().debug(f"with content: {content}")
+        # TODO: Set async call timeout
         future = client.call_async(req)
         future.add_done_callback(self.callbacks[name])
         return

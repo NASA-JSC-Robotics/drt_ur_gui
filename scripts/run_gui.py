@@ -32,3 +32,36 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
+
+
+# # Erik suggests:
+# def main(args=None):
+#     rclpy.init(args=args)
+
+#     app = QApplication(sys.argv)
+#     ur_cmdr = RemoteURCmdr()
+#     ur_gui = URGui(ur_cmdr)
+
+#     mtexec = MultiThreadedExecutor()
+#     mtexec.add_node(ur_cmdr)
+#     mtexec_T = threading.Thread(target = mtexec.spin)
+#     mtexec_T.start()
+
+#     def signal_handler(sig, frame):
+#         print(f"Program received signal: {sig}, terminating...")
+#         app.quit()
+#         ur_cmdr.response_queue.join()
+#         ur_cmdr.destroy_node()
+#         mtexec.shutdown()
+#         mtexec_T.join()
+
+#     signal.signal(signal.SIGINT, signal_handler)
+#     signal.signal(signal.SIGTERM, signal_handler)
+
+#     try:
+#         ur_gui.show()
+#         app.exec_()
+#     except KeyboardInterrupt:
+#         pass
+#     finally:
+#         rclpy.try_shutdown()

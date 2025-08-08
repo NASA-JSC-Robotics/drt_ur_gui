@@ -21,6 +21,7 @@ from drt_ur_gui import ROBOT_MODES, SAFETY_MODES, SERVICES
 class URGui(QMainWindow):
     def __init__(self, backend):
         super().__init__()
+        # TODO: self.backend = backend
         self.be = backend
         self.all_services = {self.be.get_full_service_name(item['name']):item['type'] for item in SERVICES}
         share_path = get_package_share_directory("drt_ur_gui")
@@ -165,6 +166,7 @@ class URGui(QMainWindow):
 
     def _consume_queue(self):
         try:
+            # TODO: self.be.response_queue.get(block=False)
             response = self.be.response_queue.get(timeout=0.1) # we can only wait as long as our timer period, right?
             service_name = response['service_name']
             res_content = response['content']
