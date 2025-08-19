@@ -19,6 +19,15 @@ from ur_dashboard_msgs.msg import ProgramState, RobotMode, SafetyMode
 from drt_ur_gui import ROBOT_MODES, SAFETY_MODES, SERVICES
 
 class URGui(QMainWindow):
+    """Frontend class for Dexterous Robotics Remote UR Arm Commander GUI
+    
+    Provides the user interface for remotely configuring and operating UR cobot arms
+    Backend node must be provided at startup. The backend node provides methods to interface with ROS 2,
+    mainly a means to make service requests and a queue to handle service responses.
+    
+    This GUI was built using Qt Creator and runs using the ROS 2 python_qt_binding module. The ui file used
+    is ui/drt_ur.ui
+    """
     def __init__(self, backend):
         super().__init__()
         # TODO: self.backend = backend

@@ -3,6 +3,8 @@
 
 import functools
 import queue
+import os
+import yaml
 
 # from example_interfaces.srv import AddTwoInts
 from ur_dashboard_msgs.srv import  (AddToLog,
@@ -19,17 +21,64 @@ from ur_dashboard_msgs.srv import  (AddToLog,
 from std_srvs.srv import Trigger
 import rclpy
 from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
 
 from drt_ur_gui import SERVICES
 
 class RemoteURCmdr(Node):
-    # TODO: Docstring
+    """Backend node for Dexterous Robotics Remote UR Arm Commander GUI
+    
+    Provides service clients and handles responses for service requests
+    Service clients are generated from services provided in this package's services list (config/services.yaml)
+    Services are called from the send_service_request method. 
+    Service request responses get processed and placed on a queue object shared with the Qt GUI thread as they are received.
+
+    Parameters:
+    -----------
+    dashboard_client_name: The name of the UR Dashboard Client node, used to resolve service names
+    service_list_path: The path to the yaml list of services
+            File format must follow:
+                    -name: <service_name>
+                    type: <service_type>
+    window.name: Window name to be displayed in the title bar of the GUI window
+    window.stylesheet: CSS stylesheet for GUI window
+    robot.name: Robot name to be displayed in main GUI window area
+    arm.name: Arm name to be displayed next to robot.name, used as a label when running multiple arms at once
+    program: Name of URScript program to be filled out when load_program is selected in the GUI, typically ext_ctrl.urp or external_control.urp
+    logo_file_name: The path to the logo that will be displayed in the GUI window
+
+    Attributes:
+    -----------
+    service_list: YAML safe_load list of file at service_list_path
+                        list item format: ['name': '<service_name>', 'type':<service_type>]
+    service_clients: Dict used to store service clients, keyed by service name
+    callbacks: Dist used to store service callbacks, keyed by service name
+    response_queue: Queue object used to pass service responses from ROS 2 thread to the GUI's Qt thread
+    dashboard_client_name: Stores the parameter of the same name
+    service_list_path: Stores the parameter of the same name
+    
+    Methods:
+    --------
+    _init_params: Initializes (declares) parameters and defaults
+    load_service_list: Loads the service list from the provided service_list_path
+    get_full_service_name: Appends the dashboard_client_name to a dashboard_client service name to correctly target the client node
+    generate_services_dynamically: Generates service clients and callbacks from the service list yaml at service_list_path
+    send_service_request: Sends services requests
+        Arguments:
+            name (str): the name of the service that is being requested
+            content (dict): the content of the service request, provided as a {field: value} dict
+    _process_response: Queues incoming service request responses for GUI thread
+    
+    """
     # TODO: shutdown or __del__ cleanup function
     def __init__(self):
         super().__init__('drt_ur_gui')
         self.get_logger().info("Starting drt_ur_gui node...")
         self._init_params()
-        self.service_list = SERVICES
+        self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
+        self.service_list_path = self.get_parameter('service_list_path').get_parameter_value().string_value
+        self.service_list = self.load_service_list(self.service_list_path) # TODO: test this 
+        self.load_service_list()
         self.service_clients = {}
         self.callbacks = {}
         self.response_queue = queue.Queue()
@@ -40,6 +89,7 @@ class RemoteURCmdr(Node):
             namespace = '',
             parameters = [
                 ('dashboard_client_name', 'dashboard_client'),
+                ('service_list_path', os.path.join(get_package_share_directory('drt_ur_gui'), 'config', 'services.yaml'))
                 ('window.name', 'DRT Remote Commander'),
                 ('window.stylesheet', ''),
                 ('robot.name', 'UR Arm'),
@@ -50,8 +100,11 @@ class RemoteURCmdr(Node):
                 ('logo_file_name', '')
             ]
         )
-        self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
     
+    def load_service_list(list_path):
+        with open(list_path, 'r') as service_list_contents:
+            return yaml.safe_load(list_path)
+        
     def get_full_service_name(self, srv):
         # TODO: pathlib or os.path.join here
         return '/'.join([self.dashboard_client_name, srv])

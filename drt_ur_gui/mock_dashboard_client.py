@@ -23,7 +23,7 @@ from drt_ur_gui.window import ROBOT_MODES, SAFETY_MODES
 class MockDashboardClient(Node):
     """Imitate dashboard_client node features to test communication with UR.
     
-    Provides dashboard_client services and mimics real dashboard_client responses.
+    Provides dashboard_client services and mimics real dashboard_client responses for testing when the hardware dashboard_server is unavailable to connect to.
     Includes internal simulation of UR arm state that responds to service requests.
     
     Attributes:
