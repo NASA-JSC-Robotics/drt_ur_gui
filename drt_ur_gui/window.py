@@ -25,8 +25,8 @@ class URGui(QMainWindow):
     Backend node must be provided at startup. The backend node provides methods to interface with ROS 2,
     mainly a means to make service requests and a queue to handle service responses.
     
-    This GUI was built using Qt Creator and runs using the ROS 2 python_qt_binding module. The ui file used
-    is ui/drt_ur.ui
+    This GUI was built using Qt Creator and runs using the ROS 2 python_qt_binding module, which at the time
+    of writing is based of Qt5 and PySide2. This class is currently hardcoded to load ui/drt_ur.ui as the UI file.
     """
     def __init__(self, backend):
         super().__init__()
