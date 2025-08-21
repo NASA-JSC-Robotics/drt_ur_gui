@@ -4,26 +4,26 @@
 import functools
 import queue
 import os
+import sys
 import yaml
 
-# from example_interfaces.srv import AddTwoInts
-from ur_dashboard_msgs.srv import  (AddToLog,
-                                    GetLoadedProgram,
-                                    GetProgramState,
-                                    GetRobotMode,
-                                    GetSafetyMode,
-                                    IsProgramRunning,
-                                    IsProgramSaved,
-                                    Load,
-                                    Popup,
-                                    RawRequest,
-)    
-from std_srvs.srv import Trigger
+
+from ur_dashboard_msgs.srv import  (
+    AddToLog, GetLoadedProgram, GetProgramState,
+    GetRobotMode, GetSafetyMode, IsProgramRunning,
+    IsProgramSaved, Load, Popup, RawRequest,
+)
+
+from std_srvs.srv import ( 
+    Trigger
+)
+
 import rclpy
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
-from drt_ur_gui import SERVICES
+class Service(object):
+
 
 class RemoteURCmdr(Node):
     """Backend node for Dexterous Robotics Remote UR Arm Commander GUI
@@ -77,9 +77,8 @@ class RemoteURCmdr(Node):
         self._init_params()
         self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
         self.service_list_path = self.get_parameter('service_list_path').get_parameter_value().string_value
-        self.service_list = self.load_service_list(self.service_list_path) # TODO: test this 
-        self.load_service_list()
-        self.service_clients = {}
+        self.service_list = self.load_service_list(self.service_list_path) # [{'name':'{self.dashboard_client_name}/service_name', 'type': service_type_class}]
+        self.services = self.generate_services()
         self.callbacks = {}
         self.response_queue = queue.Queue()
         self.generate_services_dynamically()
@@ -89,7 +88,7 @@ class RemoteURCmdr(Node):
             namespace = '',
             parameters = [
                 ('dashboard_client_name', 'dashboard_client'),
-                ('service_list_path', os.path.join(get_package_share_directory('drt_ur_gui'), 'config', 'services.yaml'))
+                ('service_list_path', os.path.join(get_package_share_directory('drt_ur_gui'), 'config', 'services.yaml')),
                 ('window.name', 'DRT Remote Commander'),
                 ('window.stylesheet', ''),
                 ('robot.name', 'UR Arm'),
@@ -101,26 +100,44 @@ class RemoteURCmdr(Node):
             ]
         )
     
-    def load_service_list(list_path):
+    def load_service_list(self, list_path):
+        self.get_logger().info("Loading service list...")
+        services = []
         with open(list_path, 'r') as service_list_contents:
-            return yaml.safe_load(list_path)
+            str_service_list = yaml.safe_load(service_list_contents)
+        for service in str_service_list:
+            try: # Attempt to match service type to imported modules
+                service_type = getattr(sys.modules[__name__], service["type"])
+            except AttributeError: # If we can't find the service type, inform and skip
+                self.get_logger().error(
+                    f"Error while loading services from {self.service_list_path}: "
+                    f"Service '{service_name}' type {service['type']} not recognized, skipping..."
+                )
+                continue
+            service_name = self.get_full_service_name(service['name'])
+            services.append({'name': service_name, 'type': service_type})
+        return services
+            
         
     def get_full_service_name(self, srv):
         # TODO: pathlib or os.path.join here
         return '/'.join([self.dashboard_client_name, srv])
 
-    def generate_services_dynamically(self):
-        self.get_logger().info("Generating services clients...")
+    # TODO: convert layered dict 'services' to class
+    def generate_services(self):
+        self.get_logger().info("Generating service clients...")
+        services = {}
         for service in self.service_list:
-            service_name = self.get_full_service_name(service['name'])
-            service_type = service['type']
             client = self.create_client(service_type, service_name)
-            self.service_clients[service_name] = client
-            self.callbacks[service_name] = functools.partial(self._process_response,
-                                                                service_name=service_name,
-                                                                service_type=service_type)
+            callback = functools.partial(self._process_response,
+                                            service_name=service_name,
+                                            service_type=service_type)
+            services[service_name]['client'] = client
+            services[service_name]['callback'] = callback
             self.get_logger().info(f"Service client {service_name} created.")
+        return services
 
+    # NEXT: adapt send_service_request to 
     def send_service_request(self, name: str, content: dict = None):
         # Place holder bad response for queue
         bad_response = {

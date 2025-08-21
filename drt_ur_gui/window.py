@@ -14,14 +14,18 @@ from ur_dashboard_msgs.srv import (
     GetLoadedProgram, IsProgramRunning,
     GetProgramState, GetSafetyMode
 )
+from std_srvs.srv import (
+    Trigger
+)
+
 from ur_dashboard_msgs.msg import ProgramState, RobotMode, SafetyMode
 
 from drt_ur_gui import ROBOT_MODES, SAFETY_MODES, SERVICES
 
 class URGui(QMainWindow):
-    """Frontend class for Dexterous Robotics Remote UR Arm Commander GUI
+    """Frontend class for Dexterous Robotics Remote UR GUI
     
-    Provides the user interface for remotely configuring and operating UR cobot arms
+    Provides the user interface for remotely configuring and operating UR cobot arms.
     Backend node must be provided at startup. The backend node provides methods to interface with ROS 2,
     mainly a means to make service requests and a queue to handle service responses.
     
@@ -30,9 +34,8 @@ class URGui(QMainWindow):
     """
     def __init__(self, backend):
         super().__init__()
-        # TODO: self.backend = backend
-        self.be = backend
-        self.all_services = {self.be.get_full_service_name(item['name']):item['type'] for item in SERVICES}
+        self.backend = backend
+        self.all_services = {self.backend.get_full_service_name(item['name']):item['type'] for item in self.backend.service_list}
         share_path = get_package_share_directory("drt_ur_gui")
         ui_file_path = os.path.join(share_path, "ui", "drt_ur.ui")
         self.resources_path = os.path.join(share_path, "resources")
@@ -58,19 +61,19 @@ class URGui(QMainWindow):
         return
     
     def _init_window(self):
-        self.setWindowTitle(self.be.get_parameter('window.name').get_parameter_value().string_value)
-        window_stylesheet = self.be.get_parameter('window.stylesheet').get_parameter_value().string_value
+        self.setWindowTitle(self.backend.get_parameter('window.name').get_parameter_value().string_value)
+        window_stylesheet = self.backend.get_parameter('window.stylesheet').get_parameter_value().string_value
         if window_stylesheet != '':
             self.setStyleSheet(window_stylesheet)
         return
     def _init_logo(self):
-        logo_filename = self.be.get_parameter('logo_file_name').get_parameter_value().string_value
+        logo_filename = self.backend.get_parameter('logo_file_name').get_parameter_value().string_value
         if logo_filename != '':
             logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
             self.label_logo.setPixmap(logo)
         return
     def _init_logo(self):
-        logo_filename = self.be.get_parameter('logo_file_name').get_parameter_value().string_value
+        logo_filename = self.backend.get_parameter('logo_file_name').get_parameter_value().string_value
         if logo_filename != '':
             logo = QPixmap(os.path.join(self.resources_path, 'iMetro_full.png'))
             icon = QIcon(os.path.join(self.resources_path, 'ur_gui_icon.png'))
@@ -79,15 +82,15 @@ class URGui(QMainWindow):
         return
     
     def _init_robot_label(self):
-        self.label_robot.setText(self.be.get_parameter('robot.name').get_parameter_value().string_value)
-        robot_stylesheet = self.be.get_parameter('robot.stylesheet').get_parameter_value().string_value
+        self.label_robot.setText(self.backend.get_parameter('robot.name').get_parameter_value().string_value)
+        robot_stylesheet = self.backend.get_parameter('robot.stylesheet').get_parameter_value().string_value
         if robot_stylesheet != '':
             self.label_robot.setStyleSheet(robot_stylesheet)
         return
     
     def _init_arm_label(self):
-        self.label_arm.setText(self.be.get_parameter('arm.name').get_parameter_value().string_value)
-        arm_stylesheet = self.be.get_parameter('arm.stylesheet').get_parameter_value().string_value
+        self.label_arm.setText(self.backend.get_parameter('arm.name').get_parameter_value().string_value)
+        arm_stylesheet = self.backend.get_parameter('arm.stylesheet').get_parameter_value().string_value
         if arm_stylesheet != '':
             self.label_arm.setStyleSheet(arm_stylesheet)
         return
@@ -152,10 +155,10 @@ class URGui(QMainWindow):
     @Slot(str)
     def _serviceSelected(self, srv_name):
         # get service full name (for free, from srv_name)
-        self.be.get_logger().debug('\n' + srv_name + '\n') # if we're running from a launch file using simple print won't work here
+        self.backend.get_logger().debug('\n' + srv_name + '\n') # if we're running from a launch file using simple print won't work here
         # get service type
         srv_type = self.all_services[srv_name]
-        self.be.get_logger().debug('\n' + f'{srv_type}' + '\n')
+        self.backend.get_logger().debug('\n' + f'{srv_type}' + '\n')
         # TODO: need error catches here
         # TODO: needs a recursive function to handle arbitrary message structure depth
         self.serviceTree.clear()
@@ -166,7 +169,7 @@ class URGui(QMainWindow):
             field_tree_item = QTreeWidgetItem(srv_tree_item, [field_name, field_type])
             field_input_widget = QLineEdit()
             if 'load_program' in srv_name:
-                field_input_widget.setText(self.be.get_parameter('program').get_parameter_value().string_value)
+                field_input_widget.setText(self.backend.get_parameter('program').get_parameter_value().string_value)
             self.serviceTree.setItemWidget(field_tree_item, 2, field_input_widget)
         self.serviceTree.expandAll()
         for col in range(self.serviceTree.columnCount()):
@@ -175,24 +178,24 @@ class URGui(QMainWindow):
 
     def _consume_queue(self):
         try:
-            # TODO: self.be.response_queue.get(block=False)
-            response = self.be.response_queue.get(timeout=0.1) # we can only wait as long as our timer period, right?
+            # TODO: self.backend.response_queue.get(block=False)
+            response = self.backend.response_queue.get(timeout=0.1) # we can only wait as long as our timer period, right?
             service_name = response['service_name']
             res_content = response['content']
-            if service_name == self.be.get_full_service_name('get_robot_mode'):
-                self.be.get_logger().debug("Robot mode response pulled from queue, updating...")
+            if service_name == self.backend.get_full_service_name('get_robot_mode'):
+                self.backend.get_logger().debug("Robot mode response pulled from queue, updating...")
                 robot_mode = ROBOT_MODES[res_content.robot_mode.mode]
                 self.show_robot_mode(robot_mode)
-            elif service_name == self.be.get_full_service_name('get_safety_mode'):
-                self.be.get_logger().debug("Safety mode response pulled from queue, updating...")
+            elif service_name == self.backend.get_full_service_name('get_safety_mode'):
+                self.backend.get_logger().debug("Safety mode response pulled from queue, updating...")
                 safety_mode = SAFETY_MODES[res_content.safety_mode.mode]
                 self.show_safety_mode(safety_mode)
-            elif service_name == self.be.get_full_service_name('program_state'):
-                self.be.get_logger().debug("Program state response pulled from queue, updating...")
+            elif service_name == self.backend.get_full_service_name('program_state'):
+                self.backend.get_logger().debug("Program state response pulled from queue, updating...")
                 program_state = res_content.state.state
                 self.show_program_state(program_state)
             else: # if response is not from a status service
-                self.be.get_logger().debug(f"{service_name} response pulled from queue, processing...")
+                self.backend.get_logger().debug(f"{service_name} response pulled from queue, processing...")
                 display_txt = []
                 display_txt.append(response['message']) # TODO: process success as color highlight? Or prefix?
                 res_fields = response['service_type'].Response.get_fields_and_field_types()
@@ -203,7 +206,7 @@ class URGui(QMainWindow):
         except queue.Empty:
             pass
         except Exception as e:
-            self.be.get_logger().error(f'Exception {e} encountered while processing response queue')
+            self.backend.get_logger().error(f'Exception {e} encountered while processing response queue')
             return
         return
         
@@ -244,48 +247,48 @@ class URGui(QMainWindow):
             editor = self.serviceTree.itemWidget(field_item, 2)
             data = editor.text()
             req_data[field_name] = data
-        self.be.send_service_request(srv_name, content=req_data)
+        self.backend.send_service_request(srv_name, content=req_data)
         
     @Slot()
     def brake_release_clicked(self):
         self.addText("Brake release requested, calling...")
-        self.be.send_service_request(self.be.get_full_service_name('brake_release'))
+        self.backend.send_service_request(self.backend.get_full_service_name('brake_release'))
         return
 
     @Slot()
     def play_clicked(self):
         self.addText("Program play requested, calling...")
-        self.be.send_service_request(self.be.get_full_service_name('play'))
+        self.backend.send_service_request(self.backend.get_full_service_name('play'))
         return
     
     @Slot()
     def connect_clicked(self):
         self.addText("Dashboard connect requested, calling...")
-        self.be.send_service_request(self.be.get_full_service_name('connect'))
+        self.backend.send_service_request(self.backend.get_full_service_name('connect'))
         return
 
     @Slot()
     def unlock_pstop_clicked(self):
         self.addText("Unlock protective stop requested, calling...")
-        self.be.send_service_request(self.be.get_full_service_name('unlock_protective_stop'))
+        self.backend.send_service_request(self.backend.get_full_service_name('unlock_protective_stop'))
         return
     
     @Slot()
     def restart_safety_clicked(self):
         self.addText("Restart safety requested, calling...")
-        self.be.send_service_request(self.be.get_full_service_name('restart_safety'))
+        self.backend.send_service_request(self.backend.get_full_service_name('restart_safety'))
         return
 
     def status_robot_mode(self):
-        self.be.send_service_request(self.be.get_full_service_name('get_robot_mode'))
+        self.backend.send_service_request(self.backend.get_full_service_name('get_robot_mode'))
         return
     
     def status_safety_mode(self):
-        self.be.send_service_request(self.be.get_full_service_name('get_safety_mode'))
+        self.backend.send_service_request(self.backend.get_full_service_name('get_safety_mode'))
         return
 
     def status_program_state(self):
-        self.be.send_service_request(self.be.get_full_service_name('program_state'))
+        self.backend.send_service_request(self.backend.get_full_service_name('program_state'))
         return
 
     def show_robot_mode(self, mode: str):

@@ -41,8 +41,6 @@ class MockDashboardClient(Node):
         self._initSrvs()
         
     def _initStates(self):
-        """Creates and initializes attributes for simulating internal UR state
-        """
         self.robot_mode = RobotMode()
         self.robot_mode.mode = RobotMode.POWER_OFF # = 3
         self.program_state = ProgramState()
