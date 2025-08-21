@@ -1,7 +1,7 @@
 - name: add_to_log
   type: AddToLog
 - name: brake_release
-  type: std_msgs.srv.Trigger
+  type: Trigger
 - name: clear_operational_mode
   type: Trigger
 - name: close_popup

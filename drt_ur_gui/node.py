@@ -1,4 +1,3 @@
-
 # TODO: change filename to something more descriptive
 
 import functools
@@ -6,7 +5,6 @@ import queue
 import os
 import sys
 import yaml
-
 
 from ur_dashboard_msgs.srv import  (
     AddToLog, GetLoadedProgram, GetProgramState,
@@ -21,9 +19,6 @@ from std_srvs.srv import (
 import rclpy
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
-
-class Service(object):
-
 
 class RemoteURCmdr(Node):
     """Backend node for Dexterous Robotics Remote UR Arm Commander GUI
@@ -78,7 +73,7 @@ class RemoteURCmdr(Node):
         self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
         self.service_list_path = self.get_parameter('service_list_path').get_parameter_value().string_value
         self.service_list = self.load_service_list(self.service_list_path) # [{'name':'{self.dashboard_client_name}/service_name', 'type': service_type_class}]
-        self.services = self.generate_services()
+        self.services = self.generate_services() # TODO: name this ANYTHING ELSE
         self.callbacks = {}
         self.response_queue = queue.Queue()
         self.generate_services_dynamically()
@@ -106,6 +101,7 @@ class RemoteURCmdr(Node):
         with open(list_path, 'r') as service_list_contents:
             str_service_list = yaml.safe_load(service_list_contents)
         for service in str_service_list:
+            service_name = self.get_full_service_name(service['name'])
             try: # Attempt to match service type to imported modules
                 service_type = getattr(sys.modules[__name__], service["type"])
             except AttributeError: # If we can't find the service type, inform and skip
@@ -114,7 +110,6 @@ class RemoteURCmdr(Node):
                     f"Service '{service_name}' type {service['type']} not recognized, skipping..."
                 )
                 continue
-            service_name = self.get_full_service_name(service['name'])
             services.append({'name': service_name, 'type': service_type})
         return services
             
@@ -128,12 +123,15 @@ class RemoteURCmdr(Node):
         self.get_logger().info("Generating service clients...")
         services = {}
         for service in self.service_list:
+            service_name, service_type = service["name"], service["type"]
             client = self.create_client(service_type, service_name)
             callback = functools.partial(self._process_response,
                                             service_name=service_name,
                                             service_type=service_type)
-            services[service_name]['client'] = client
-            services[service_name]['callback'] = callback
+            services[service_name] = {
+                'client': client,
+                'callback': callback,
+            }
             self.get_logger().info(f"Service client {service_name} created.")
         return services
 
@@ -147,47 +145,46 @@ class RemoteURCmdr(Node):
             'response_content': None
         }
         # is the service known?
-        if name not in self.service_clients.keys():
+        if name not in self.services.keys():
             self.get_logger().error(f'service {name} requested is unavailable!')
             bad_response['message'] = f"Service client for '{name}' not found."
             self.response_queue.put(bad_response)
             return
-        client = self.service_clients[name]
+        client = self.services[name]['client']
         # is the service ready?
         if not client.service_is_ready():
             self.get_logger().warn(f"Service '{name}' is not ready, skipping request.")
             bad_response['message'] = f"Service '{name}' is not ready."
             self.response_queue.put(bad_response)
             return
-        # TODO: req = client.srv_type.Request()
-        req_type = client.srv_type.Request
-        req = req_type()
+        req = client.srv_type.Request()
         # populate service request from content dictionary
         if content:
             for field, value in content.items():
                 if hasattr(req, field): # check to verify that content is valid
                     try:
-                        setattr(req, field, value) # populates request field-by-field, setattr for dynamic field naming
+                        setattr(req, field, value) # populates request field-by-field    
+                    # if a field value is of the wrong type, send error and return
                     except TypeError as e:
                         self.get_logger().error(
-                            f"Type error setting '{field}' for service request to '{name}': {e}. "
+                            f"Service request failed: Type error setting '{field}' for service request to '{name}': {e}. "
                             f"Expected type: {type(getattr(req, field))}, Got: {type(value)}"
                         )
-                        bad_response['message'] = f"Type mismatch for '{field}' in service '{name}' request: {e}"
+                        bad_response['message'] = f"Service request failed: Type mismatch for '{field}' in service '{name}' request: {e}"
                         self.response_queue.put(bad_response)
                         return
-                else: # req does not have 'field' attribute
+                else: # if a message field does not exist, send error and return
                     # TODO: warn -> ERROR
-                    self.get_logger().warn(
-                        f"Request field '{field}' not found in service '{name}' request message. "
-                         "Skipping this argument."
+                    self.get_logger().error(
+                        f"Service request failed: Request field '{field}' not found in service '{name}' request message. "
+                        f"Available fields and types are {req.get_fields_and_field_types()}"
                     )
-                    continue
+                    return
         self.get_logger().debug(f"Sending service request to '{name}")
         if content: self.get_logger().debug(f"with content: {content}")
         # TODO: Set async call timeout
         future = client.call_async(req)
-        future.add_done_callback(self.callbacks[name])
+        future.add_done_callback(self.services[name]['callback'])
         return
 
 
