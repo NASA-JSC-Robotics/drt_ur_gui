@@ -69,6 +69,8 @@ class RemoteURCmdr(Node):
     def __init__(self):
         super().__init__('drt_ur_gui')
         self.get_logger().info("Starting drt_ur_gui node...")
+        self.service_request_timeout = 5.0 # seconds
+        self.active_service_requests = {} # used to store and ID async service requests for timeout handling
         self._init_params()
         self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
         self.service_list_path = self.get_parameter('service_list_path').get_parameter_value().string_value
@@ -130,11 +132,11 @@ class RemoteURCmdr(Node):
             services[service_name] = {
                 'client': client,
                 'callback': callback,
+                'type': service_type
             }
             self.get_logger().info(f"Service client {service_name} created.")
         return services
 
-    # NEXT: adapt send_service_request to 
     def send_service_request(self, name: str, content: dict = None):
         # Place holder bad response for queue
         bad_response = {
@@ -145,15 +147,17 @@ class RemoteURCmdr(Node):
         }
         # is the service known?
         if name not in self.loaded_services.keys():
-            self.get_logger().error(f'service {name} requested is unavailable!')
-            bad_response['message'] = f"Service client for '{name}' not found."
+            response_message = f"Service {name} requested is unavailable!"
+            self.get_logger().error(response_message)
+            bad_response['message'] = response_message
             self.response_queue.put(bad_response)
             return
         client = self.loaded_services[name]['client']
         # is the service ready?
         if not client.service_is_ready():
-            self.get_logger().warn(f"Service '{name}' is not ready, skipping request.")
-            bad_response['message'] = f"Service '{name}' is not ready."
+            response_message = f"Service {name} is not ready, skipping request."
+            self.get_logger().error(response_message)
+            bad_response['message'] = response_message
             self.response_queue.put(bad_response)
             return
         req = client.srv_type.Request()
@@ -165,27 +169,60 @@ class RemoteURCmdr(Node):
                         setattr(req, field, value) # populates request field-by-field    
                     # if a field value is of the wrong type, send error and return
                     except TypeError as e:
-                        self.get_logger().error(
-                            f"Service request failed: Type error setting '{field}' for service request to '{name}': {e}. "
-                            f"Expected type: {type(getattr(req, field))}, Got: {type(value)}"
-                        )
-                        bad_response['message'] = f"Service request failed: Type mismatch for '{field}' in service '{name}' request: {e}"
+                        response_message =  f"Service request failed: Type error setting {field} for service request to {name}: {e}. "\
+                                            f"Expected type: {type(getattr(req, field))}, Got: {type(value)}"
+                        self.get_logger().error(response_message)
+                        bad_response['message'] = response_message
                         self.response_queue.put(bad_response)
                         return
                 else: # if a message field does not exist, send error and return
-                    # TODO: warn -> ERROR
-                    self.get_logger().error(
-                        f"Service request failed: Request field '{field}' not found in service '{name}' request message. "
-                        f"Available fields and types are {req.get_fields_and_field_types()}"
-                    )
+                    response_message =  f"Service request failed: Request field {field} not found in service {name} request message."\
+                                        f"Available fields and types are {req.get_fields_and_field_types()}"
+                    self.get_logger().error(response_message)
+                    bad_response['message'] = response_message
                     return
-        self.get_logger().debug(f"Sending service request to '{name}")
+        self.get_logger().debug(f"Sending service request to {name}")
         if content: self.get_logger().debug(f"with content: {content}")
         # TODO: Set async call timeout
-        future = client.call_async(req)
-        future.add_done_callback(self.loaded_services[name]['callback'])
+
+        request_id = id(req)
+        request_future = client.call_async(req)
+        request_timer = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
+        self.active_service_requests[request_id] = {
+            'future' : request_future,
+            'timer' : request_timer,
+            'name' : name,
+        }
+        # request_future.add_done_callback(self.loaded_services[name]['callback'])
+        request_future.add_done_callback(functools.partial(self._process_request_done, request_id))
+        return
+    
+    def _process_request_timeout(self, request_id):
+        if request_id in self.active_service_requests:
+            request = self.active_service_requests.pop(request_id)
+            service_name = request['name']
+            service_type = self.loaded_services[service_name]['type']
+            output = {
+                'service_name': service_name,
+                'service_type': service_type,
+                'success': False,
+                'message': f"Service call timed out, (timeout={self.service_request_timeout})",
+                'content': None
+            }
+            self.get_logger.error(f"Service call to {service_name} timed out, timeout is set to {self.service_request_timeout}")
+            self.response_queue.put(output)
+        else: # request_id is not registered in self.active_service_requests
+            self.get_logger.error(f"Service request id {request_id} not found in active requests id list")
         return
 
+    def _process_request_done(self, request_id, future):
+        if request_id in self.active_service_requests:
+            request = self.active_service_requests.pop(request_id)
+            request['timer'].cancel()
+            self.loaded_services[request['name']]['callback'](future)
+        else:
+            self.get_logger().error(f"Received response from unknown request ID {request_id}")
+        return
 
     def _process_response(self, future, service_name: str, service_type):
         output = {
