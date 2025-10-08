@@ -48,5 +48,3 @@
   type: Trigger
 - name: unlock_protective_stop
   type: Trigger
-- name: FAIL_TEST
-  type: FAIL_TYPE

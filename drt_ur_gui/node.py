@@ -72,11 +72,10 @@ class RemoteURCmdr(Node):
         self._init_params()
         self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
         self.service_list_path = self.get_parameter('service_list_path').get_parameter_value().string_value
-        self.service_list = self.load_service_list(self.service_list_path) # [{'name':'{self.dashboard_client_name}/service_name', 'type': service_type_class}]
-        self.services = self.generate_services() # TODO: name this ANYTHING ELSE
+        self.service_list = self.load_service_list(self.service_list_path) # [{'name':'<self.dashboard_client_name>/<service_name>', 'type': <service_type_class>}]
+        self.loaded_services = self.generate_services()
         self.callbacks = {}
         self.response_queue = queue.Queue()
-        self.generate_services_dynamically()
 
     def _init_params(self):
         self.declare_parameters(
@@ -145,12 +144,12 @@ class RemoteURCmdr(Node):
             'response_content': None
         }
         # is the service known?
-        if name not in self.services.keys():
+        if name not in self.loaded_services.keys():
             self.get_logger().error(f'service {name} requested is unavailable!')
             bad_response['message'] = f"Service client for '{name}' not found."
             self.response_queue.put(bad_response)
             return
-        client = self.services[name]['client']
+        client = self.loaded_services[name]['client']
         # is the service ready?
         if not client.service_is_ready():
             self.get_logger().warn(f"Service '{name}' is not ready, skipping request.")
@@ -184,7 +183,7 @@ class RemoteURCmdr(Node):
         if content: self.get_logger().debug(f"with content: {content}")
         # TODO: Set async call timeout
         future = client.call_async(req)
-        future.add_done_callback(self.services[name]['callback'])
+        future.add_done_callback(self.loaded_services[name]['callback'])
         return
 
 

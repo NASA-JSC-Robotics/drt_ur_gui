@@ -20,7 +20,7 @@ from std_srvs.srv import (
 
 from ur_dashboard_msgs.msg import ProgramState, RobotMode, SafetyMode
 
-from drt_ur_gui import ROBOT_MODES, SAFETY_MODES, SERVICES
+from drt_ur_gui import ROBOT_MODES, SAFETY_MODES
 
 class URGui(QMainWindow):
     """Frontend class for Dexterous Robotics Remote UR GUI

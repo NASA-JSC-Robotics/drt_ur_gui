@@ -5,10 +5,6 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
-
-from drt_ur_gui import SERVICES
-
-
 def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
