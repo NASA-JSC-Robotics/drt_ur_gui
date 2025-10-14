@@ -17,6 +17,7 @@ from ur_dashboard_msgs.srv import  (AddToLog,
                                     Popup,
                                     RawRequest,
     )
+from rcl_interfaces.msg import ParameterDescriptor
 
 from drt_ur_gui.window import ROBOT_MODES, SAFETY_MODES
 
@@ -37,9 +38,14 @@ class MockDashboardClient(Node):
     def __init__(self):
         super().__init__('dashboard_client')
         self.r_cbg = ReentrantCallbackGroup()
+        self._set_connect_lag_param()
         self._initStates()
         self._initSrvs()
         
+    def _set_connect_lag_param(self):
+        connect_lag_descriptor = ParameterDescriptor(description="Force the connect service callback to lag for a specified amount of time (in seconds)")
+        self.declare_parameter('connect_lag', 0, connect_lag_descriptor)
+    
     def _initStates(self):
         self.robot_mode = RobotMode()
         self.robot_mode.mode = RobotMode.POWER_OFF # = 3

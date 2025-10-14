@@ -69,7 +69,7 @@ class RemoteURCmdr(Node):
     def __init__(self):
         super().__init__('drt_ur_gui')
         self.get_logger().info("Starting drt_ur_gui node...")
-        self.service_request_timeout = 5.0 # seconds
+        self.service_request_timeout = 5.0 # seconds # TODO: Param self.service_request_timeout
         self.active_service_requests = {} # used to store and ID async service requests for timeout handling
         self._init_params()
         self.dashboard_client_name = self.get_parameter('dashboard_client_name').get_parameter_value().string_value
@@ -139,6 +139,7 @@ class RemoteURCmdr(Node):
 
     def send_service_request(self, name: str, content: dict = None):
         # Place holder bad response for queue
+        self.get_logger().debug(f"SERVICE REQUEST: {name} {content}")
         bad_response = {
             'service_name': name,
             'success': False,
@@ -183,18 +184,11 @@ class RemoteURCmdr(Node):
                     return
         self.get_logger().debug(f"Sending service request to {name}")
         if content: self.get_logger().debug(f"with content: {content}")
-        # TODO: Set async call timeout
-
         request_id = id(req)
-        request_future = client.call_async(req)
-        request_timer = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
-        self.active_service_requests[request_id] = {
-            'future' : request_future,
-            'timer' : request_timer,
-            'name' : name,
-        }
-        # request_future.add_done_callback(self.loaded_services[name]['callback'])
-        request_future.add_done_callback(functools.partial(self._process_request_done, request_id))
+        self.active_service_requests[request_id] = {}
+        self.active_service_requests[request_id]['future'] = client.call_async(req)
+        self.active_service_requests[request_id]['future'].add_done_callback(functools.partial(self._process_request_done, request_id))
+        self.active_service_requests[request_id]['timer'] = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
         return
     
     def _process_request_timeout(self, request_id):
@@ -212,7 +206,7 @@ class RemoteURCmdr(Node):
             self.get_logger.error(f"Service call to {service_name} timed out, timeout is set to {self.service_request_timeout}")
             self.response_queue.put(output)
         else: # request_id is not registered in self.active_service_requests
-            self.get_logger.error(f"Service request id {request_id} not found in active requests id list")
+            self.get_logger().error(f"Service request id {request_id} not found in active requests id list")
         return
 
     def _process_request_done(self, request_id, future):
