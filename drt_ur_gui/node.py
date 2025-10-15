@@ -5,6 +5,7 @@ import queue
 import os
 import sys
 import yaml
+from random import random
 
 from ur_dashboard_msgs.srv import  (
     AddToLog, GetLoadedProgram, GetProgramState,
@@ -184,7 +185,7 @@ class RemoteURCmdr(Node):
                     return
         self.get_logger().debug(f"Sending service request to {name}")
         if content: self.get_logger().debug(f"with content: {content}")
-        request_id = id(req)
+        request_id = int(random()*1e6)
         self.get_logger().info(f"{name} ID: {request_id}")
         self.active_service_requests[request_id] = {}
         self.active_service_requests[request_id]['name'] = name
@@ -196,6 +197,7 @@ class RemoteURCmdr(Node):
     def _process_request_timeout(self, request_id):
         if request_id in self.active_service_requests:
             request = self.active_service_requests.pop(request_id)
+            request['timer'].cancel()
             service_name = request['name']
             service_type = self.loaded_services[service_name]['type']
             output = {
