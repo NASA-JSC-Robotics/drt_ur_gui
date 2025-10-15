@@ -140,7 +140,7 @@ class RemoteURCmdr(Node):
 
     def send_service_request(self, name: str, content: dict = None):
         # Place holder bad response for queue
-        self.get_logger().info(f"SERVICE REQUEST: {name} {content}")
+        self.get_logger().debug(f"SERVICE REQUEST: {name} {content}")
         bad_response = {
             'service_name': name,
             'success': False,
@@ -186,7 +186,7 @@ class RemoteURCmdr(Node):
         self.get_logger().debug(f"Sending service request to {name}")
         if content: self.get_logger().debug(f"with content: {content}")
         request_id = int(random()*1e6)
-        self.get_logger().info(f"{name} ID: {request_id}")
+        self.get_logger().debug(f"{name} ID: {request_id}")
         self.active_service_requests[request_id] = {}
         self.active_service_requests[request_id]['name'] = name
         self.active_service_requests[request_id]['timer'] = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
