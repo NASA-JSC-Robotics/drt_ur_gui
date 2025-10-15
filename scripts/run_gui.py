@@ -15,8 +15,8 @@ def main(args=None):
     ur_cmdr = RemoteURCmdr()
     mtexec = MultiThreadedExecutor()
     mtexec.add_node(ur_cmdr)
-    mtexec_T = threading.Thread(target = mtexec.spin, daemon = True)
-    mtexec_T.start()
+    mtexec_Thread = threading.Thread(target = mtexec.spin, daemon = True)
+    mtexec_Thread.start()
     
     
     ur_gui = URGui(ur_cmdr)
@@ -27,7 +27,7 @@ def main(args=None):
     ur_cmdr.destroy_node()
     rclpy.shutdown()
     mtexec.shutdown()
-    mtexec_T.join()
+    mtexec_Thread.join()
     
 
 if __name__ == "__main__":
