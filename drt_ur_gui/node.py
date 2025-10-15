@@ -139,7 +139,7 @@ class RemoteURCmdr(Node):
 
     def send_service_request(self, name: str, content: dict = None):
         # Place holder bad response for queue
-        self.get_logger().debug(f"SERVICE REQUEST: {name} {content}")
+        self.get_logger().info(f"SERVICE REQUEST: {name} {content}")
         bad_response = {
             'service_name': name,
             'success': False,
@@ -185,10 +185,12 @@ class RemoteURCmdr(Node):
         self.get_logger().debug(f"Sending service request to {name}")
         if content: self.get_logger().debug(f"with content: {content}")
         request_id = id(req)
+        self.get_logger().info(f"{name} ID: {request_id}")
         self.active_service_requests[request_id] = {}
+        self.active_service_requests[request_id]['name'] = name
+        self.active_service_requests[request_id]['timer'] = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
         self.active_service_requests[request_id]['future'] = client.call_async(req)
         self.active_service_requests[request_id]['future'].add_done_callback(functools.partial(self._process_request_done, request_id))
-        self.active_service_requests[request_id]['timer'] = self.create_timer(self.service_request_timeout, functools.partial(self._process_request_timeout, request_id))
         return
     
     def _process_request_timeout(self, request_id):
@@ -203,7 +205,7 @@ class RemoteURCmdr(Node):
                 'message': f"Service call timed out, (timeout={self.service_request_timeout})",
                 'content': None
             }
-            self.get_logger.error(f"Service call to {service_name} timed out, timeout is set to {self.service_request_timeout}")
+            self.get_logger().error(f"Service call to {service_name} timed out, timeout is set to {self.service_request_timeout}")
             self.response_queue.put(output)
         else: # request_id is not registered in self.active_service_requests
             self.get_logger().error(f"Service request id {request_id} not found in active requests id list")

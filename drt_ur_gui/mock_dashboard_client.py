@@ -1,4 +1,4 @@
-import itertools, threading
+import itertools, threading, time
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -43,8 +43,10 @@ class MockDashboardClient(Node):
         self._initSrvs()
         
     def _set_connect_lag_param(self):
-        connect_lag_descriptor = ParameterDescriptor(description="Force the connect service callback to lag for a specified amount of time (in seconds)")
-        self.declare_parameter('connect_lag', 0, connect_lag_descriptor)
+        connect_lag_descriptor = ParameterDescriptor(description="Add 6 seconds of lag to the connect service callback to force timeout")
+        self.declare_parameter('connect_lag', 'false', connect_lag_descriptor)
+        self.connect_lag = (self.get_parameter('connect_lag').value == 'true')
+        self.get_logger().info(f"CONNECT LAG IS {self.connect_lag}")
     
     def _initStates(self):
         self.robot_mode = RobotMode()
@@ -289,6 +291,8 @@ class MockDashboardClient(Node):
         self.get_logger().debug('Incoming request: connect')
         res.success = True
         res.message = 'connected'
+        if self.connect_lag:
+            time.sleep(6)
         return res
     
     def cb_GetLoadedProgram(self, req, res):

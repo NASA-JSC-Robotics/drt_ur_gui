@@ -3,7 +3,7 @@ import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, AndSubstitution, PythonExpression
+from launch.substitutions import LaunchConfiguration, AndSubstitution, NotSubstitution, PythonExpression
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -20,8 +20,8 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument(
             "connect_lag",
-            default_value='true',
-            choices=['true', 'false']
+            default_value='false',
+            choices=['true', 'false'],
             description="Force service timeouts by adding lag to the 'connect' service in the mock Dashboard Client node (only works with use_fake_hardware=true)"
         )
     )
@@ -60,10 +60,24 @@ def generate_launch_description():
         condition=IfCondition(
                     AndSubstitution(
                         use_fake_hardware,
-                        PythonExpression([
-                            connect_lag,
-                            "== 0"
-                        ])))
+                        NotSubstitution(
+                            connect_lag
+                        )))
     )
-    return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node])
+    
+    slow_mock_dbc_node = Node(
+        package= "drt_ur_gui",
+        executable="run_mock_dbc.py",
+        output='screen',
+        namespace = ns,
+        parameters=[{
+            'connect_lag': 'true',
+        }],
+        condition=IfCondition(
+                    AndSubstitution(
+                        use_fake_hardware,
+                        connect_lag
+                        ))
+    )
+    return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node, slow_mock_dbc_node])
 
