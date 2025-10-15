@@ -178,8 +178,7 @@ class URGui(QMainWindow):
 
     def _consume_queue(self):
         try:
-            # TODO: self.backend.response_queue.get(block=False)
-            response = self.backend.response_queue.get(timeout=0.1) # we can only wait as long as our timer period, right?
+            response = self.backend.response_queue.get(block=False)
             service_name = response['service_name']
             res_content = response['content']
             if service_name == self.backend.get_full_service_name('get_robot_mode'):
