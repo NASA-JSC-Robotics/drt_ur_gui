@@ -44,8 +44,8 @@ class MockDashboardClient(Node):
         
     def _set_connect_lag_param(self):
         connect_lag_descriptor = ParameterDescriptor(description="Add 6 seconds of lag to the connect service callback to force timeout")
-        self.declare_parameter('connect_lag', 'false', connect_lag_descriptor)
-        self.connect_lag = (self.get_parameter('connect_lag').value == 'true')
+        self.declare_parameter('connect_lag', False, connect_lag_descriptor)
+        self.connect_lag = self.get_parameter('connect_lag').value
         self.get_logger().info(f"CONNECT LAG IS {self.connect_lag}")
     
     def _initStates(self):

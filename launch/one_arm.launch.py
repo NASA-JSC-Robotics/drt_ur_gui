@@ -71,7 +71,7 @@ def generate_launch_description():
         output='screen',
         namespace = ns,
         parameters=[{
-            'connect_lag': 'true',
+            'connect_lag': True,
         }],
         condition=IfCondition(
                     AndSubstitution(
