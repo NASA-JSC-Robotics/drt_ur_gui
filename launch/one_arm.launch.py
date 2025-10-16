@@ -32,18 +32,16 @@ def generate_launch_description():
             description="Namespace for the hardware robot"
         )
     )
+    
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     connect_lag = LaunchConfiguration("connect_lag")
-    print('PRINT')
     ns = LaunchConfiguration("ns")
-
     
     config = os.path.join(
         get_package_share_directory('drt_ur_gui'),
         'config',
         'one_arm.yaml'
     )
-    print(config)
     
     gui_node = Node(
         package = "drt_ur_gui",
@@ -57,27 +55,11 @@ def generate_launch_description():
         executable="run_mock_dbc.py",
         output='screen',
         namespace = ns,
-        condition=IfCondition(
-                    AndSubstitution(
-                        use_fake_hardware,
-                        NotSubstitution(
-                            connect_lag
-                        )))
-    )
-    
-    slow_mock_dbc_node = Node(
-        package= "drt_ur_gui",
-        executable="run_mock_dbc.py",
-        output='screen',
-        namespace = ns,
         parameters=[{
-            'connect_lag': True,
+            'connect_lag': connect_lag,
         }],
-        condition=IfCondition(
-                    AndSubstitution(
-                        use_fake_hardware,
-                        connect_lag
-                        ))
+        condition=IfCondition(use_fake_hardware),
     )
-    return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node, slow_mock_dbc_node])
+
+    return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node])
 
