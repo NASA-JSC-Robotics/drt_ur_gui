@@ -1,67 +1,61 @@
 #!/usr/bin/python3
 
-import threading, sys
+import threading, signal, sys
+from functools import partial
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
 from python_qt_binding.QtWidgets import QApplication
+from python_qt_binding.QtCore import QTimer
+from rclpy.signals import SignalHandlerOptions
 
 from drt_ur_gui.window import URGui
 from drt_ur_gui.node import RemoteURCmdr
 
+def cleanup_ros2(node, multithread_exec):
+    """
+    Cleanup function for the GUI backend node.
+    """
+    node.get_logger().info("Starting cleanup on shutdown...")
+    multithread_exec.remove_node(node)
+    node.destroy_node()
+    multithread_exec.shutdown()
+    rclpy.try_shutdown()
 
 def main(args=None):
-    rclpy.init(args=args)
-    app = QApplication(sys.argv)
-    ur_cmdr = RemoteURCmdr()
+    signal.signal(signal.SIGINT, signal.SIG_IGN) # block incoming SIGINT signals
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO) # tell ros2 to let us handle all signals
+    app = QApplication(sys.argv) # Create Qt application
+    ur_cmdr = RemoteURCmdr() # GUI backend node
+    ur_gui = URGui(ur_cmdr) # GUI Node with backend node arg
+    
     mtexec = MultiThreadedExecutor()
     mtexec.add_node(ur_cmdr)
-    mtexec_Thread = threading.Thread(target = mtexec.spin, daemon = True)
-    mtexec_Thread.start()
     
+    def sigterm_handler(sig, frame):
+        """
+        Handler for SIGTERM signals. Commands Qt App to quit, triggering sys.exit() in main().
+        """
+        ur_cmdr.get_logger().info("Received SIGTERM, shutting down gui...")
+        app.quit()
+
+    signal.signal(signal.SIGTERM, sigterm_handler) # set SIGTERM signals to trigger sigterm_handler function
     
-    ur_gui = URGui(ur_cmdr)
-    ur_gui.show()
+    # Running the Qt App through a QTimer to allow for graceful exit through app.quit() in sigterm_handler function
+    timer = QTimer()
+    timer.timeout.connect(partial(mtexec.spin_once, timeout_sec=0))
+    timer.start(10) # 10ms, 100Hz refresh rate
     
-    app.exec_()
-    ur_cmdr.response_queue.join()
-    ur_cmdr.destroy_node()
-    rclpy.shutdown()
-    mtexec.shutdown()
-    mtexec_Thread.join()
-    
+    cleanup_function = partial(cleanup_ros2, ur_cmdr, mtexec) # partial function/lambda for backend node clean up
+    app.aboutToQuit.connect(cleanup_function) # Triggers cleanup_function on GUI window close
+
+    try:
+        ur_gui.show()
+        sys.exit(app.exec_())
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        cleanup_ros2(ur_cmdr, mtexec) # Trigger cleanup on unexpected exceptions
+        sys.exit(1)
+        
 
 if __name__ == "__main__":
     main()
-
-
-# # Erik suggests:
-# def main(args=None):
-#     rclpy.init(args=args)
-
-#     app = QApplication(sys.argv)
-#     ur_cmdr = RemoteURCmdr()
-#     ur_gui = URGui(ur_cmdr)
-
-#     mtexec = MultiThreadedExecutor()
-#     mtexec.add_node(ur_cmdr)
-#     mtexec_T = threading.Thread(target = mtexec.spin)
-#     mtexec_T.start()
-
-#     def signal_handler(sig, frame):
-#         print(f"Program received signal: {sig}, terminating...")
-#         app.quit()
-#         ur_cmdr.response_queue.join()
-#         ur_cmdr.destroy_node()
-#         mtexec.shutdown()
-#         mtexec_T.join()
-
-#     signal.signal(signal.SIGINT, signal_handler)
-#     signal.signal(signal.SIGTERM, signal_handler)
-
-#     try:
-#         ur_gui.show()
-#         app.exec_()
-#     except KeyboardInterrupt:
-#         pass
-#     finally:
-#         rclpy.try_shutdown()

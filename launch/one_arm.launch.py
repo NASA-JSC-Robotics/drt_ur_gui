@@ -2,6 +2,7 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.events import Shutdown
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, AndSubstitution, NotSubstitution, PythonExpression
 from launch_ros.actions import Node
@@ -48,7 +49,8 @@ def generate_launch_description():
         executable="run_gui.py",
         output='screen',
         namespace = ns,
-        parameters = [config]
+        parameters = [config],
+        sigterm_timeout='0',
     )
     mock_dbc_node = Node(
         package= "drt_ur_gui",
@@ -59,6 +61,8 @@ def generate_launch_description():
             'connect_lag': connect_lag,
         }],
         condition=IfCondition(use_fake_hardware),
+        sigterm_timeout='0',
+        
     )
 
     return LaunchDescription(declared_arguments + [gui_node, mock_dbc_node])
