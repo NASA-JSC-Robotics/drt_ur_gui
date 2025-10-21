@@ -39,5 +39,3 @@ left_drt_ur_gui:
       QComboBox QAbstractItemView::item:selected {
         background-color: #e7ebfd;
       }
-
-

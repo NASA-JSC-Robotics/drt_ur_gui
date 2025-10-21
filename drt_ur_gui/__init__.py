@@ -17,26 +17,32 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from ur_dashboard_msgs.msg import ProgramState, RobotMode, SafetyMode
-from ur_dashboard_msgs.srv import AddToLog, GetLoadedProgram, GetRobotMode, GetSafetyMode, Load, Popup, IsProgramRunning, IsProgramRunning, IsProgramSaved, GetProgramState, RawRequest
-from std_srvs.srv import Trigger
+from ur_dashboard_msgs.msg import RobotMode, SafetyMode
+
 
 def denumerate_ros_msg_type(msg_type):
-    """Converts enumerated ROS 2 message types to {integer_value:name} dictonaries
+    """Converts enumerated ROS 2 message types to {integer_value:name} dictionaries
 
     Arguments:
         msg_type (ROS 2 Message Class): The enumerated message type to denumerate
-    
+
     Returns:
-        dict: {integer_value:name} reverse-enumerated (numbered) dictonary of named interger constants defined in the ROS 2 message type
-    
-    RobotMode, SafetyMode, and other ROS 2 messages contain named integer constants. Unfortunately these constants are stored as object attributes and
-    aren't actually associated with the message field. There's no easy way to look up a constant's name by that constant's integer value, despite the field
-    only storing the integer value. This function attempts to solve that issue by returning a dict that's keyed by the integer values.
+        dict: {integer_value:name} reverse-enumerated (numbered) dictionary of named integer constants defined in the
+                                    ROS 2 message type
+
+    RobotMode, SafetyMode, and other ROS 2 messages contain named integer constants. Unfortunately these constants are
+    stored as object attributes and aren't actually associated with the message field. There's no easy way to look up a
+    constant's name by that constant's integer value, despite the field only storing the integer value. This function
+    attempts to solve that issue by returning a dict that's keyed by the integer values.
 
     Works by filtering the message type's attribute list to attributes that return integers.
     """
-    return {getattr(msg_type, name): name for name in dir(msg_type) if not name.startswith('_') and isinstance(getattr(msg_type, name), int)}
+    return {
+        getattr(msg_type, name): name
+        for name in dir(msg_type)
+        if not name.startswith("_") and isinstance(getattr(msg_type, name), int)
+    }
+
 
 # ROBOT_MODES
 # 0: 'DISCONNECTED'

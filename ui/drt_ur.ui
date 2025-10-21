@@ -217,7 +217,7 @@
            <item>
             <widget class="QComboBox" name="serviceSelector">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Service selector.&lt;/p&gt;&lt;p&gt;Use the drop down to select a service. Services that require aditional input will be filled out in the service request tree below.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Service selector.&lt;/p&gt;&lt;p&gt;Use the drop down to select a service. Services that require additional input will be filled out in the service request tree below.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
@@ -309,7 +309,7 @@
          </size>
         </property>
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The service montior. Displays timestamped service requests and responses as they are made or recieved&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The service monitor. Displays timestamped service requests and responses as they are made or received&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="styleSheet">
          <string notr="true">font: 10pt "Monospace";
