@@ -1,5 +1,5 @@
 # `drt_ur_gui`
-`drt_ur_gui` is a ROS 2 based user interface written in python that enables remote operation of Universal Robotics collaborative robotic arms. 
+`drt_ur_gui` is a ROS 2 based user interface written in python that enables remote operation of Universal Robotics collaborative robotic arms.
 - Intended to be used with UR Arms configured for Remote Control
 - Enables command of UR Arms with out Polyscope touchscreen pendant interaction
 - Useful in operations where Polyscope interaction is difficult or unsafe
