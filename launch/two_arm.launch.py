@@ -30,21 +30,20 @@ def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
         DeclareLaunchArgument(
-            "use_fake_hardware",
+            "mock_dashboard",
             default_value="false",
             choices=["true", "false"],
-            description="Start robot with simulated hardware mirroring command to its states",
+            description="Launch the mock dashboard node to simulated UR commands and state",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument("ns", default_value="", description="Namespace for the hardware robot")
     )
 
-    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+    mock_dashboard = LaunchConfiguration("mock_dashboard")
     ns = LaunchConfiguration("ns")
 
     config_right = os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_right.yaml")
-
     config_left = os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_left.yaml")
 
     right_arm_nodes = [
@@ -63,7 +62,7 @@ def generate_launch_description():
             name="right_dashboard_client",  # must match dashboard_client_name in config/two_arm_right.yaml
             output="screen",
             namespace=ns,
-            condition=IfCondition(use_fake_hardware),
+            condition=IfCondition(mock_dashboard),
             sigterm_timeout="0",
         ),
     ]
@@ -84,7 +83,7 @@ def generate_launch_description():
             name="left_dashboard_client",
             output="screen",
             namespace=ns,
-            condition=IfCondition(use_fake_hardware),
+            condition=IfCondition(mock_dashboard),
             sigterm_timeout="0",
         ),
     ]

@@ -31,10 +31,10 @@ def generate_launch_description():
     declared_arguments = []
     declared_arguments.append(
         DeclareLaunchArgument(
-            "use_fake_hardware",
+            "mock_dashboard",
             default_value="false",
             choices=["true", "false"],
-            description="Start robot with simulated hardware mirroring command to its states",
+            description="Launch the mock dashboard node to simulated UR commands and state",
         )
     )
     declared_arguments.append(
@@ -43,14 +43,14 @@ def generate_launch_description():
             default_value="false",
             choices=["true", "false"],
             description="Force service timeouts by adding lag to the 'connect' service in the \
-                            mock Dashboard Client node (only works with use_fake_hardware=true)",
+                            mock Dashboard Client node (only works with mock_dashboard=true)",
         )
     )
     declared_arguments.append(
         DeclareLaunchArgument("ns", default_value="", description="Namespace for the hardware robot")
     )
 
-    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+    mock_dashboard = LaunchConfiguration("mock_dashboard")
     connect_lag = LaunchConfiguration("connect_lag")
     ns = LaunchConfiguration("ns")
 
@@ -74,7 +74,7 @@ def generate_launch_description():
                 "connect_lag": connect_lag,
             }
         ],
-        condition=IfCondition(use_fake_hardware),
+        condition=IfCondition(mock_dashboard),
         sigterm_timeout="0",
     )
 
