@@ -1,16 +1,22 @@
-# `drt_ur_gui`
+# DRT Universal Robots GUI
+
 `drt_ur_gui` is a ROS 2 based user interface written in python that enables remote operation of Universal Robotics collaborative robotic arms.
-- Intended to be used with UR Arms configured for Remote Control
+The key delivered features:
+
 - Enables command of UR Arms with out Polyscope touchscreen pendant interaction
+- Intended to be used with UR Arms configured for Remote Control
 - Useful in operations where Polyscope interaction is difficult or unsafe
 
-
+![alt text](./drt_ur_gui.png "DRT UR GUI")
 
 ## Installation
-Installation of `drt_ur_gui` is similar to most ROS 2 packages.
+
+This package can be installed in any normal `colcon` workspace:
+
 1) Clone `drt_ur_gui` into your workspace `src/` directory
-2) Use rosdep install `drt_ur_gui`'s dependencies
+2) Use rosdep to install `drt_ur_gui`'s dependencies
 3) Build your workspace
+
 ```bash
 cd src/
 git clone git@js-er-code.jsc.nasa.gov:imetro/drt_ur_gui.git
@@ -19,24 +25,37 @@ cd ..
 colcon build
 ```
 
-## Use
-On it's own `drt_ur_gui` is configured to command up to two URs at once using launch files (though it can be used to command more)
-#### One arm use
-- `one_arm.launch.py` is used to run a singular UR arm
-    - `ros2 launch drt_ur_gui one_arm.launch.py`
-    - Configured by `config/one_arm.yaml`
-        - YAML Configured Parameters:
-            - `dashboard_client_name`: name of the UR `dashboard_client` node, must match or UR communication will fail
-            - `program`: sets the default program to be loaded to the UR when `/dashboard_client/load_program` is selected
-            - `window.name`: sets the name that appears in the bar at the top of the UI window
-            - `window.stylesheet`: Qt format stylesheet, enables users to customize the look and feel of the UI
-            - `logo_file_name`: the filepath to the logo to be displayed in the UI window
-#### Two arm use
+## Usage
+
+On its own `drt_ur_gui` is configured to command up to two URs at once using launch files.
+However, more configuration files can be used to command any number of active UR arms.
+
+### One arm use
+
+```bash
+# To connect to a hardware UR dashboard client
+ros2 launch drt_ur_gui one_arm.launch.py
+
+# To launch a simulated client for development and testing
+ros2 launch drt_ur_gui one_arm.launch.py mock_dashboard:=true
+```
+
+- `one_arm.launch.py` is used to run a singular UR arm using the settings in `config/one_arm.yaml`:
+    - `dashboard_client_name`: name of the UR `dashboard_client` node, must match or UR communication will fail
+    - `program`: sets the default program to be loaded to the UR when `/dashboard_client/load_program` is selected
+    - `window.name`: sets the name that appears in the bar at the top of the UI window
+    - `window.stylesheet`: Qt format stylesheet, enables users to customize the look and feel of the UI
+    - `logo_file_name`: the filepath to the logo to be displayed in the UI window
+
+### Dual arm use
+
 - `two_arm.launch.py` is used to run two URs at once, typically in a "humanoid" left-right configuration
     - `ros2 launch drt_ur_gui two_arm.launch.py`
     - Configured by `config/two_arm_left.yaml` and `config/two_arm_right.yaml`
         - Parameters exposed in the two arm configuration files are the same as the one arm configuration parameters explained above
-#### *N* arm use and use with other robots
+
+### *N* arm use and use with other robots
+
 - `drt_ur_gui` can command any number of UR arms in (probably) any robot setup
     - Every `drt_ur_gui` backend node communicates with an arm's respective `dashboard_client` node
     - The UI can be run from the command line without configuration files as long as the correct `dashboard_client` node name is provided as a parameter
