@@ -164,7 +164,6 @@ class RemoteURCmdr(Node):
         return services
 
     def get_full_service_name(self, srv):
-        # TODO: pathlib or os.path.join here
         return "/".join([self.dashboard_client_name, srv])
 
     # TODO: convert layered dict 'services' to class

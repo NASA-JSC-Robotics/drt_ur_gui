@@ -69,9 +69,7 @@ class URGui(QMainWindow):
     def __init__(self, backend):
         super().__init__()
         self.backend = backend
-        self.all_services = {
-            self.backend.get_full_service_name(item["name"]): item["type"] for item in self.backend.service_list
-        }
+        self.all_services = {item["name"]: item["type"] for item in self.backend.service_list}
         share_path = get_package_share_directory("drt_ur_gui")
         ui_file_path = os.path.join(share_path, "ui", "drt_ur.ui")
         self.resources_path = os.path.join(share_path, "resources")
