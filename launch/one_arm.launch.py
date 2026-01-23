@@ -49,19 +49,25 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument("ns", default_value="", description="Namespace for the hardware robot")
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "config_file_path",
+            default_value=os.path.join(get_package_share_directory("drt_ur_gui"), "config", "one_arm.yaml"),
+            description="Full filepath to the parameters yaml that will be applied to the GUI window",
+        )
+    )
 
     mock_dashboard = LaunchConfiguration("mock_dashboard")
     connect_lag = LaunchConfiguration("connect_lag")
     ns = LaunchConfiguration("ns")
-
-    config = os.path.join(get_package_share_directory("drt_ur_gui"), "config", "one_arm.yaml")
+    config_file_path = LaunchConfiguration("config_file_path")
 
     gui_node = Node(
         package="drt_ur_gui",
         executable="run_gui.py",
         output="screen",
         namespace=ns,
-        parameters=[config],
+        parameters=[config_file_path],
         sigterm_timeout="0",
     )
     mock_dbc_node = Node(
