@@ -67,7 +67,7 @@ ros2 launch drt_ur_gui one_arm.launch.py mock_dashboard:=true
 
 ## Citation
 
-This project falls under the purview of the iMETRO project. 
+This project falls under the purview of the iMETRO project.
 If you use this in your own work, please cite the following paper:
 
 ```bibtex
