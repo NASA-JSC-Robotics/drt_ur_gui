@@ -39,18 +39,31 @@ def generate_launch_description():
     declared_arguments.append(
         DeclareLaunchArgument("ns", default_value="", description="Namespace for the hardware robot")
     )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "right_arm_config_path",
+            default_value=os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_right.yaml"),
+            description="Full filepath to the parameters yaml that will be applied to the right arm GUI window",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "left_arm_config_path",
+            default_value=os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_left.yaml"),
+            description="Full filepath to the parameters yaml that will be applied to the left arm GUI window",
+        )
+    )
 
     mock_dashboard = LaunchConfiguration("mock_dashboard")
     ns = LaunchConfiguration("ns")
-
-    config_right = os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_right.yaml")
-    config_left = os.path.join(get_package_share_directory("drt_ur_gui"), "config", "two_arm_left.yaml")
+    config_right = LaunchConfiguration("right_arm_config_path")
+    config_left = LaunchConfiguration("left_arm_config_path")
 
     right_arm_nodes = [
         Node(
             package="drt_ur_gui",
             executable="run_gui.py",
-            name="right_remote_ur_commander",
+            name="right_drt_ur_gui",
             output="screen",
             namespace=ns,
             parameters=[config_right],
@@ -71,7 +84,7 @@ def generate_launch_description():
         Node(
             package="drt_ur_gui",
             executable="run_gui.py",
-            name="left_remote_ur_commander",
+            name="left_drt_ur_gui",
             output="screen",
             namespace=ns,
             parameters=[config_left],
