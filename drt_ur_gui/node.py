@@ -44,6 +44,12 @@ from std_srvs.srv import Trigger
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
+# Import the capabilities for socket and threading
+import socket
+import threading
+import struct
+
+
 _KNOWN_SRV_TYPES = [
     AddToLog,
     GetLoadedProgram,
@@ -125,6 +131,26 @@ class RemoteURCmdr(Node):
         self.callbacks = {}
         self.response_queue = queue.Queue()
 
+        ## Initialize the socket structure
+        self.robot_ip = self.get_parameter("robot_ip").get_parameter_value().string_value
+
+        # Primary Interface Sockets and Threads
+        self.primary_socket = None
+        self.rtde_socket = None
+        self.rtde_running = False
+
+        self.telemetry_lock = threading.Lock()
+        self.latest_telemetry = {
+            "timestamp": 0.0,
+            "actual_q": [0.0] * 6,
+            "actual_qd": [0.0] * 6,
+            "output_double_register_0": 0.0,
+        }
+
+        # Connect Primary and RTDE Interfaces
+        self.connect_primary_interface()
+        self.connect_rtde_interface()
+
     def _init_params(self):
         self.declare_parameters(
             namespace="",
@@ -142,6 +168,11 @@ class RemoteURCmdr(Node):
                 ("arm.stylesheet", ""),
                 ("program", "default.urp"),
                 ("logo_file_name", ""),
+                # Add a declaration for robot's IP
+                (
+                    "robot_ip",
+                    "192.168.1.110",
+                ),  # <--------- This is a static IP address assignment, do we want this to be dynamic? Can it be dynamic?
             ],
         )
 
@@ -289,3 +320,119 @@ class RemoteURCmdr(Node):
         self.get_logger().debug(f"Response from {service_name} added to queue")
         self.response_queue.put(output)
         return
+
+    # Primary and RTDE Interface Functions
+
+    def connect_primary_interface(self):
+        try:
+            self.primary_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.primary_socket.settimeout(2.0)
+            self.primary_socket.connect((self.robot_ip, 30001))
+            self.get_logger.info().info("Successfully connected to Primary Interface")
+        except Exception as e:
+            self.get_logger().error(f"Failed to connect to Primary Interface: {e}")
+            self.primary_socket = None
+
+    def send_urscript(self, script_string: str):
+        output = {
+            "service_name": "priamry_interface/send_script",
+            "service_type": None,
+            "success": False,
+            "message": "",
+            "content": None,
+        }
+
+        if not self.primary_socket:
+            self.connect_primary_interface()
+
+        if self.primary_socket:
+            try:
+                clean_script = script_string.string()
+
+                if "\n" in clean_script and not clean_script.startswith("def"):
+                    formatted_script = "def gui_executed_program():\n"
+
+                    for line in clean_script.splitlines():
+                        formatted_script += f"  {line}\n"
+
+                    formatted_script += "end\n"
+                else:
+                    formatted_script = clean_script + "\n"
+
+                self.primary_socket.sendall(formatted_script.encode("utf-8"))
+                output["success"] = True
+                output["message"] = "URScript delivered and compiled successfully."
+
+                self.get_logger().debug(f"Sent wrapped URScript:\n{formatted_script}")
+
+            except Exception as e:
+                output["message"] = f"Failed to send multi-line URScript: {e}"
+                self.primary_socket = None
+        else:
+            output["message"] = "Primary Interface socket is not connected."
+
+        self.response_queue.put(output)
+
+    def connect_rtde_interface(self):
+        try:
+            self.rtde_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.rtde_socket.settimeout(2.0)
+            self.rtde_socket.connect((self.robot_ip, 30004))
+
+            # UR RTDE Protocol: Standard Header len + payloads
+            # There are other payloads that you can pull, just add/remove the payloades from here
+            setup_cmd = b"\x00\x1b0timestamp,actual_q,actual_qd"
+            setup_cmd
+
+            self.rtde_running = True
+            self.rtde_thread = threading.Thread(target=self._rtde_loop, daemon=True)
+            self.rtde_thread.start()
+
+            self.get_logger.info().info(f"RTDE Thread initialized fr {self.robot_ip}:30004")
+        except Exception as e:
+            self.get_logger().error(f"Failed to connect to RTDE Interface: {e}")
+
+    def _rtde_loop(self):
+        # RTDE requires a continuous read command after setup to start synchronization
+        try:
+            self.rtde_socket.sendall(b"\x00\x03S")
+        except Exception as e:
+            self.get_logger().error(f"RTDE Start exception: {e}")
+            return
+
+        while self.rtde_running:
+            try:
+                header = self.rtde_scoket.recv(3)  # Packet header: 2 bytes length + 1 byte type
+                if len(header) < 3:
+                    continue
+                packet_len = struct.unpack("!H", header[0:2])[0]
+                packet_type = header[2]
+
+                payload = self.rtde_socket.recv(packet_len - 3)
+                if packet_type == 0x55:
+                    if len(payload) >= 104:
+                        timestamp = struct.unpack("!d", payload[0:8])[0]
+                        actual_q = list(struct.unpack("!6d", payload[8:56]))
+                        actual_qd = list(struct.unpack("!6d", payload[56:104]))
+
+                        with self.telemetry_lock:
+                            self.latest_telemetry["timestamp"] = timestamp
+                            self.latest_telemetry["actual_q"] = actual_q
+                            self.latest_telemetry["actual_qd"] = actual_qd
+
+            except socket.timeout:
+                continue
+            except Exception as e:
+                self.get_logger().error(f"RTDE Loop execution error: {e}")
+                break
+
+    def send_rtde_input(self, register_id: int, value: float):
+        if not self.rtde_socket:
+            return
+        try:
+            packet = struct.pack(
+                "!Hcd", 11, b"U", value
+            )  # simple formatting, but there should be more targeted formatting
+            self.rtde_socket.sendall(packet)
+        except Exception as e:
+            self.get_logger().error(f"Failed to transmit RTDE input filed: {e}")

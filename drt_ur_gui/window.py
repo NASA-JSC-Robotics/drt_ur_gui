@@ -138,6 +138,11 @@ class URGui(QMainWindow):
         timer_program_state = QTimer(self)
         timer_program_state.timeout.connect(self.status_program_state)
         timer_program_state.start(2000)  # 0.5 hz
+
+        # RTDE update rendering loop
+        timer_rtde_telemetry = QTimer(self)
+        timer_rtde_telemetry.timeout.connect(self.update_rtde_telemetry_ui)
+        timer_rtde_telemetry.start(50)  # 20 Hz sync cycle
         return
 
     def _init_queue_consumer(self):
@@ -159,6 +164,10 @@ class URGui(QMainWindow):
         self.b_clearService.clicked.connect(self.clear_service_clicked)
         self.b_send.clicked.connect(self.send_service_clicked)
         # TODO: self.b_watch.clicked.connect(
+
+        # Adding send script function for the interfaces
+        if hasattr(self, "b_sendScript"):
+            self.b_sendScript.clicked.connect(self.send_script_clicked)
         return
 
     def _init_service_selector(self):
@@ -222,6 +231,11 @@ class URGui(QMainWindow):
                 self.backend.get_logger().debug("Program state response pulled from queue, updating...")
                 program_state = res_content.state.state
                 self.show_program_state(program_state)
+            # idk if this should be the first one, but adding ability to capture script responses explicitly
+            elif service_name == "primary_interface/send_script":
+                self.addText(
+                    f"Primary Interface Status: {response['message']}"
+                )  # changed respond to response, but will see --&y
             else:  # if response is not from a status service
                 self.backend.get_logger().debug(f"{service_name} response pulled from queue, processing...")
                 display_txt = []
@@ -305,6 +319,29 @@ class URGui(QMainWindow):
         self.backend.send_service_request(self.backend.get_full_service_name("restart_safety"))
         return
 
+    # Slot for the Primary/RTDE Interfaces
+    @Slot()
+    def send_script_clicked(self):
+        if hasattr(self, "scriptInputText"):
+            script_content = self.scriptInputText.toPlainText()
+            if script_content.strip():
+                self.addText("Sending custom URScript execution payload via Primary Interface...")
+                self.backend.send_urscript(script_content)
+            else:
+                self.addText("Empty input area, script transmission ignored.")
+        else:
+            greeting_script = 'popup("Hello from NASA JSC GUI!")'
+            self.backend.send_urscript(greeting_script)
+
+    def update_rtde_telemetry_ui(self):
+        with self.backend.telemetry_lock:
+            telemetry = dict(self.backend.latest_telemetry)
+
+        joint_str = ", ".join([f"{q:.3f}" for q in telemetry["actual_q"]])
+
+        if hasattr(self, "label_joint_positions"):
+            self.label_joint_positions.setText(f"Joint Positions: [{joint_str}]")
+
     def status_robot_mode(self):
         self.backend.send_service_request(self.backend.get_full_service_name("get_robot_mode"))
         return
@@ -327,6 +364,7 @@ class URGui(QMainWindow):
             "BACKDRIVE",
             "FREEDRIVE",
         ]  # TODO: Do these ever actually show up, is FREEDRIVE correct?
+
         if mode in red_modes:
             color = "red"
         elif mode in yellow_modes:
