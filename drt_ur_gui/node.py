@@ -49,6 +49,10 @@ import socket
 import threading
 import struct
 
+# Import ROS2 controller manager capabilities
+from controller_manager_msgs.srv import SwitchController
+from std_msgs.msg import Bool
+
 
 _KNOWN_SRV_TYPES = [
     AddToLog,
@@ -150,6 +154,14 @@ class RemoteURCmdr(Node):
         # Connect Primary and RTDE Interfaces
         self.connect_primary_interface()
         self.connect_rtde_interface()
+
+        ## Adding ROS2 service client and publisher
+        self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
+
+        self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
+
+        self.freedrive_active = False
+        self.heartbeat_timer = self.create_timer(0.2, self._run_freedrive_heartbeat)
 
     def _init_params(self):
         self.declare_parameters(
@@ -322,6 +334,9 @@ class RemoteURCmdr(Node):
         return
 
     # Primary and RTDE Interface Functions
+    # TL;DR Direct Port calls are not in use
+    """These are direct UR Arm Port calls, but they don't work. The front end works, but connecting to the actual robot does not.
+    I'm leaving the skeleton of this code in tact, in case we need direct port calls in the future. &y"""
 
     def connect_primary_interface(self):
         try:
@@ -436,3 +451,52 @@ class RemoteURCmdr(Node):
             self.rtde_socket.sendall(packet)
         except Exception as e:
             self.get_logger().error(f"Failed to transmit RTDE input filed: {e}")
+
+    ## ROS2 Controller Manager functions
+    def _run_freedrive_heartbeat(self):
+        if self.freedrive_active:
+            msg = Bool()
+            msg.data = True
+            self.freedrive_pub.publish(msg)
+
+    def enable_ros2_freedrive(self):
+        if not self.switch_client.service_is_ready():
+            self.get_logger().error("Controller manager service unavailable.")
+            return False
+
+        req = SwitchController.Request()
+        req.activate_controllers = ["freedrive_mode_controller"]
+        req.deactivate_controllers = [
+            "clr_joint_trajectory_controller, lift_rail_joint_trajectory, streaming_controller, servo_controller"
+        ]
+        req.strictiness = SwitchController.Request.STRICT
+
+        future = self.switch_client.call_async(req)
+        future.add_done_callback(self._enable_switch_done_callback)
+
+    def _enable_switch_done_callback(self, future):
+        res = future.result()
+        if res.ok:
+            self.get_logger().info("Successfully paused tracking. Starting freedrive.")
+            self.freedrive_active = True
+        else:
+            self.get_logger().error("Failed to switch controllers.")
+
+    def disable_ros2_freedrive(self):
+        self.freedrive_active = False
+        req = SwitchController.Request()
+        req.activate_controllers = [
+            "clr_joint_trajectory_controller, lift_rail_joint_trajectory, streaming_controller, servo_controller"
+        ]
+        req.deactivate_controllers = ["freedrive_mode_controllers"]
+        req.strictness = SwitchController.Request.STRICT
+
+        future = self.switch_client.call_async(req)
+        future.add_done_callback(self._disable_switch_done_callback)
+
+    def _disable_switch_done_callback(self, future):
+        res = future.result()
+        if res.ok:
+            self.get_logger().info("Freedrive mode disabled.")
+        else:
+            self.get_logger().error("Failed to restore previous controllers.")

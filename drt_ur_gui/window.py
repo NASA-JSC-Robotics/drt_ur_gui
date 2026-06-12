@@ -165,6 +165,8 @@ class URGui(QMainWindow):
         self.b_send.clicked.connect(self.send_service_clicked)
         # TODO: self.b_watch.clicked.connect(
 
+        # Adding freedrive toggle button
+        self.b_freedriveToggle.toggled.connect(self.freedrive_toggle_clicked)
         # Adding send script function for the interfaces
         if hasattr(self, "b_sendScript"):
             self.b_sendScript.clicked.connect(self.send_script_clicked)
@@ -320,6 +322,10 @@ class URGui(QMainWindow):
         return
 
     # Slot for the Primary/RTDE Interfaces
+    # TL;DR Direct Port calls are not in use
+    """These are direct UR Arm Port calls, but they don't work. The front end works, but connecting to the actual robot does not.
+    I'm leaving the skeleton of this code in tact, in case we need direct port calls in the future. &y"""
+
     @Slot()
     def send_script_clicked(self):
         if hasattr(self, "scriptInputText"):
@@ -332,6 +338,18 @@ class URGui(QMainWindow):
         else:
             greeting_script = 'popup("Hello from NASA JSC GUI!")'
             self.backend.send_urscript(greeting_script)
+
+    # Slot for the Freedrive Button
+    @Slot(bool)
+    def freedrive_toggle_clicked(self, checked):
+        if checked:
+            self.addText("Requesting Freedrive Mode")
+            self.b_freedriveToggle.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+            self.backend.enable_ros2_freedrive()
+        else:
+            self.addText("Exiting Freedrive Mode")
+            self.b_freedriveToggle.setStyleSheet("")
+            self.backend.disable_ros2_freedrive()
 
     def update_rtde_telemetry_ui(self):
         with self.backend.telemetry_lock:

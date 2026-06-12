@@ -142,6 +142,19 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="b_freedriveToggle">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sends ROS2 request to enable/disable freedrive mode&lt;/p&gt;&lt;p&gt;- ros2_control &lt;/p&gt;&lt;p&gt;- to safely swap controllers &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+               <property name="text">
+                <string>Freedrive Mode</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+                </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>

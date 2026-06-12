@@ -1,0 +1,18 @@
+to enable freedrive:
+def enableFreedrive():
+
+write_output_integer_register(0, 1)
+
+freedrive_mode()
+
+while read_output_integer_register(0) == 1:
+	sync()
+end
+
+end_freedrive_mode()
+end
+
+
+
+to disable freedrive:
+write_output_integer_register(0, 0)
