@@ -161,7 +161,7 @@ class RemoteURCmdr(Node):
         self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
 
         self.freedrive_active = False
-        self.heartbeat_timer = self.create_timer(0.2, self._run_freedrive_heartbeat)
+        self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
     def _init_params(self):
         self.declare_parameters(
@@ -466,10 +466,9 @@ class RemoteURCmdr(Node):
 
         req = SwitchController.Request()
         req.activate_controllers = ["freedrive_mode_controller"]
-        req.deactivate_controllers = [
-            "clr_joint_trajectory_controller, lift_rail_joint_trajectory, streaming_controller, servo_controller"
-        ]
-        req.strictiness = SwitchController.Request.STRICT
+        req.deactivate_controllers = ["joint_trajectory_controller"]
+
+        req.strictness = SwitchController.Request.STRICT
 
         future = self.switch_client.call_async(req)
         future.add_done_callback(self._enable_switch_done_callback)
@@ -485,10 +484,9 @@ class RemoteURCmdr(Node):
     def disable_ros2_freedrive(self):
         self.freedrive_active = False
         req = SwitchController.Request()
-        req.activate_controllers = [
-            "clr_joint_trajectory_controller, lift_rail_joint_trajectory, streaming_controller, servo_controller"
-        ]
-        req.deactivate_controllers = ["freedrive_mode_controllers"]
+        req.activate_controllers = ["joint_trajectory_controller"]
+
+        req.deactivate_controllers = ["freedrive_mode_controller"]
         req.strictness = SwitchController.Request.STRICT
 
         future = self.switch_client.call_async(req)
