@@ -160,6 +160,12 @@ class RemoteURCmdr(Node):
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
 
+        # Call the list of active controllers because we are not booting the robot in freedrive mode
+        # while not self.control_list_client.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().info("Service not available, waiting...")
+
+        self.control_request = ListControllers.Request()
+
         self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
 
         self.freedrive_active = False
@@ -458,17 +464,19 @@ class RemoteURCmdr(Node):
             self.get_logger().error(f"Failed to transmit RTDE input filed: {e}")
 
     ## ROS2 Controller Manager functions
+    # self.control_request = ListControllers.Request() --> here for referencing, delete l8r
     def _get_active_controllers(self):
-        if not self.switch_client.service_is_ready(timeout_sec=1.0):
+        if not self.switch_client.service_is_ready():
             self.get_logger().error("Controller manager service unavailable. (-1)")
             return False
 
-        controller_response = self.control_list_client.call_async(ListControllers.Request())
-        for controller in controller_response.state:
-            if controller_response.state == "active":
-                self.current_controllers.append(controller_response.name)
+        controller_response = self.control_list_client.call_async(self.control_request)
+        for controller in controller_response:
+            if controller.state == "active":
+                if not controller.required_command_interfaces:
+                    self.current_controllers.append(controller.name)
 
-        if not len(self.current_controllers) > 0:
+        if not self.current_controllers:
             self.get_logger().error("No controllers registered as active.")
             return False
 
@@ -479,13 +487,13 @@ class RemoteURCmdr(Node):
             self.freedrive_pub.publish(msg)
 
     def enable_ros2_freedrive(self):
-        if not self.switch_client.service_is_ready(timeout_sec=1.0):
+        if not self.switch_client.service_is_ready():
             self.get_logger().error("Controller manager service unavailable.")
             return False
 
         req = SwitchController.Request()
-        req.activate_controllers = self._get_active_controllers
-        req.deactivate_controllers = self.current_controllers
+        req.deactivate_controllers = self._get_active_controllers
+        req.activate_controllers = self.freedrive_controller
 
         req.strictness = SwitchController.Request.STRICT
 
@@ -501,19 +509,25 @@ class RemoteURCmdr(Node):
             self.get_logger().error("Failed to switch controllers.")
 
     def disable_ros2_freedrive(self):
-        self.freedrive_active = False
-        req = SwitchController.Request()
-        req.activate_controllers = self._get_active_controllers
+        if not self.switch_client.service_is_ready():
+            self.get_logger().error("Controller manager service unavailable.")
+            return False
 
+        req = SwitchController.Request()
         req.deactivate_controllers = self.freedrive_controller
+        req.activate_controllers = self.current_controllers
+
         req.strictness = SwitchController.Request.STRICT
 
-        future = self.switch_client.call_async(req)
+        future = self.switch_client.call_async(
+            req
+        )  # if there is no set in active controllers, then the console will error out. safeguard?
         future.add_done_callback(self._disable_switch_done_callback)
 
     def _disable_switch_done_callback(self, future):
         res = future.result()
         if res.ok:
             self.get_logger().info("Freedrive mode disabled.")
+            self.freedrive_active = False
         else:
             self.get_logger().error("Failed to restore previous controllers.")
