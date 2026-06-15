@@ -51,6 +51,7 @@ import struct
 
 # Import ROS2 controller manager capabilities
 from controller_manager_msgs.srv import SwitchController
+from controller_manager_msgs.srv import ListControllers
 from std_msgs.msg import Bool
 
 
@@ -157,11 +158,15 @@ class RemoteURCmdr(Node):
 
         ## Adding ROS2 service client and publisher
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
+        self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
 
         self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
 
         self.freedrive_active = False
-        self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
+        self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)  # Publish freedrive message at 2Hz
+
+        self.current_controllers = ["joint_trajectory_controller"]
+        self.freedrive_controller = ["freedrive_mode_controller"]
 
     def _init_params(self):
         self.declare_parameters(
@@ -465,8 +470,8 @@ class RemoteURCmdr(Node):
             return False
 
         req = SwitchController.Request()
-        req.activate_controllers = ["freedrive_mode_controller"]
-        req.deactivate_controllers = ["joint_trajectory_controller"]
+        req.activate_controllers = self.freedrive_controller
+        req.deactivate_controllers = self.current_controllers
 
         req.strictness = SwitchController.Request.STRICT
 
@@ -484,9 +489,9 @@ class RemoteURCmdr(Node):
     def disable_ros2_freedrive(self):
         self.freedrive_active = False
         req = SwitchController.Request()
-        req.activate_controllers = ["joint_trajectory_controller"]
+        req.activate_controllers = self.current_controllers
 
-        req.deactivate_controllers = ["freedrive_mode_controller"]
+        req.deactivate_controllers = self.freedrive_controller
         req.strictness = SwitchController.Request.STRICT
 
         future = self.switch_client.call_async(req)
