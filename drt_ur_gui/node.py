@@ -165,7 +165,7 @@ class RemoteURCmdr(Node):
         self.freedrive_active = False
         self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)  # Publish freedrive message at 2Hz
 
-        self.current_controllers = ["joint_trajectory_controller"]
+        self.current_controllers = []
         self.freedrive_controller = ["freedrive_mode_controller"]
 
     def _init_params(self):
@@ -458,6 +458,20 @@ class RemoteURCmdr(Node):
             self.get_logger().error(f"Failed to transmit RTDE input filed: {e}")
 
     ## ROS2 Controller Manager functions
+    def _get_active_controllers(self):
+        if not self.switch_client.service_is_ready(timeout_sec=1.0):
+            self.get_logger().error("Controller manager service unavailable. (-1)")
+            return False
+
+        controller_response = self.control_list_client.call_async(ListControllers.Request())
+        for controller in controller_response.state:
+            if controller_response.state == "active":
+                self.current_controllers.append(controller_response.name)
+
+        if not len(self.current_controllers) > 0:
+            self.get_logger().error("No controllers registered as active.")
+            return False
+
     def _run_freedrive_heartbeat(self):
         if self.freedrive_active:
             msg = Bool()
@@ -465,12 +479,12 @@ class RemoteURCmdr(Node):
             self.freedrive_pub.publish(msg)
 
     def enable_ros2_freedrive(self):
-        if not self.switch_client.service_is_ready():
+        if not self.switch_client.service_is_ready(timeout_sec=1.0):
             self.get_logger().error("Controller manager service unavailable.")
             return False
 
         req = SwitchController.Request()
-        req.activate_controllers = self.freedrive_controller
+        req.activate_controllers = self._get_active_controllers
         req.deactivate_controllers = self.current_controllers
 
         req.strictness = SwitchController.Request.STRICT
@@ -489,7 +503,7 @@ class RemoteURCmdr(Node):
     def disable_ros2_freedrive(self):
         self.freedrive_active = False
         req = SwitchController.Request()
-        req.activate_controllers = self.current_controllers
+        req.activate_controllers = self._get_active_controllers
 
         req.deactivate_controllers = self.freedrive_controller
         req.strictness = SwitchController.Request.STRICT
