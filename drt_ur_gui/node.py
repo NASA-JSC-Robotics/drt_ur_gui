@@ -466,6 +466,9 @@ class RemoteURCmdr(Node):
     ## ROS2 Controller Manager functions
     # self.control_request = ListControllers.Request() --> here for referencing, delete l8r
     def _get_active_controllers(self):
+
+        self.current_controllers.clear()
+
         if not self.switch_client.service_is_ready():
             self.get_logger().error("Controller manager service unavailable. (-1)")
             return False
@@ -479,6 +482,8 @@ class RemoteURCmdr(Node):
         if not self.current_controllers:
             self.get_logger().error("No controllers registered as active.")
             return False
+
+        return self.current_controllers
 
     def _run_freedrive_heartbeat(self):
         if self.freedrive_active:
