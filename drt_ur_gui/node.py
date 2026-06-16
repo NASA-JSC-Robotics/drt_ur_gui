@@ -25,6 +25,7 @@ import os
 import sys
 import yaml
 from random import random
+import time
 
 from ur_dashboard_msgs.srv import (
     AddToLog,
@@ -473,7 +474,16 @@ class RemoteURCmdr(Node):
             self.get_logger().error("Controller manager service unavailable. (-1)")
             return False
 
-        controller_response = self.control_list_client.call_async(self.control_request)
+        controller_call = self.control_list_client.call_async(self.control_request)
+        controller_call.add_done_callback(self._enable_control_done_callback)
+
+    def _enable_control_done_callback(self, controller_call):
+        controller_response = controller_call.result()
+        if controller_response.ok:
+            self.get_logger().info("Retrieved list of active controllers.")
+        else:
+            self.get_logger().error("Failed to retrieve list of active controllers.")
+
         for controller in controller_response:
             if controller.state == "active":
                 if not controller.required_command_interfaces:
@@ -481,9 +491,6 @@ class RemoteURCmdr(Node):
 
         if not self.current_controllers:
             self.get_logger().error("No controllers registered as active.")
-            return False
-
-        return self.current_controllers
 
     def _run_freedrive_heartbeat(self):
         if self.freedrive_active:
@@ -497,7 +504,18 @@ class RemoteURCmdr(Node):
             return False
 
         req = SwitchController.Request()
-        req.deactivate_controllers = self._get_active_controllers
+        self._get_active_controllers()
+        ctr = 0
+
+        while not self.current_controllers:
+            time.sleep(0.5)
+            ctr += 1
+
+            if ctr == 20:
+                self.get_logger().error("No controllers registered as active. (-1)")
+                return
+
+        req.deactivate_controllers = self.current_controllers
         req.activate_controllers = self.freedrive_controller
 
         req.strictness = SwitchController.Request.STRICT
