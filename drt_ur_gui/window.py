@@ -331,7 +331,7 @@ class URGui(QMainWindow):
         if hasattr(self, "scriptInputText"):
             script_content = self.scriptInputText.toPlainText()
             if script_content.strip():
-                self.addText("Sending custom URScript execution payload via Primary Interface...")
+                self.addText("Sending URScript via script_command topic...")
                 self.backend.send_urscript(script_content)
             else:
                 self.addText("Empty input area, script transmission ignored.")
