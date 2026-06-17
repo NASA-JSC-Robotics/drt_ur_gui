@@ -25,7 +25,6 @@ import os
 import sys
 import yaml
 from random import random
-import time
 
 from ur_dashboard_msgs.srv import (
     AddToLog,
@@ -45,17 +44,11 @@ from std_srvs.srv import Trigger
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
-# Import the capabilities for socket and threading
-import socket
-import threading
-import struct
-from std_msgs.msg import String
-
 # Import ROS2 controller manager capabilities
 from controller_manager_msgs.srv import SwitchController
 from controller_manager_msgs.srv import ListControllers
 from std_msgs.msg import Bool
-
+import time
 
 _KNOWN_SRV_TYPES = [
     AddToLog,
@@ -138,32 +131,6 @@ class RemoteURCmdr(Node):
         self.callbacks = {}
         self.response_queue = queue.Queue()
 
-        ## Initialize the socket structure
-        self.robot_ip = self.get_parameter("robot_ip").get_parameter_value().string_value
-
-        self.script_command_topic = (
-            self.declare_parameter("script_command_topic", "/script_command").get_parameter_value().string_value
-        )
-        self.script_command_pub = self.create_publisher(String, self.script_command_topic, 10)  # QoS queue depth
-        self.get_logger().info(f"Script command publisher created on topic: {self.script_command_topic}")
-
-        # Primary Interface Sockets and Threads
-        # self.primary_socket = None
-        self.rtde_socket = None
-        self.rtde_running = False
-
-        self.telemetry_lock = threading.Lock()
-        self.latest_telemetry = {
-            "timestamp": 0.0,
-            "actual_q": [0.0] * 6,
-            "actual_qd": [0.0] * 6,
-            # "output_double_register_0": 0.0,
-        }
-
-        # Connect Primary and RTDE Interfaces
-        # self.connect_primary_interface()
-        self.connect_rtde_interface()
-
         ## Adding ROS2 service client and publisher
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
@@ -199,11 +166,6 @@ class RemoteURCmdr(Node):
                 ("arm.stylesheet", ""),
                 ("program", "default.urp"),
                 ("logo_file_name", ""),
-                # Add a declaration for robot's IP
-                (
-                    "robot_ip",
-                    "192.168.1.102",
-                ),  # <--------- This is a static IP address assignment, do we want this to be dynamic? Can it be dynamic?
             ],
         )
 
@@ -351,205 +313,6 @@ class RemoteURCmdr(Node):
         self.get_logger().debug(f"Response from {service_name} added to queue")
         self.response_queue.put(output)
         return
-
-    # Primary and RTDE Interface Functions
-    # TL;DR Direct Port calls are not in use
-    """These are direct UR Arm Port calls, but they don't work. The front end works, but connecting to the actual robot does not.
-    I'm leaving the skeleton of this code in tact, in case we need direct port calls in the future. &y"""
-
-    # def connect_primary_interface(self):
-    #     try:
-    #         self.primary_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #         self.primary_socket.settimeout(2.0)
-    #         self.primary_socket.connect((self.robot_ip, 30001))
-    #         self.get_logger.info().info("Successfully connected to Primary Interface")
-    #     except Exception as e:
-    #         self.get_logger().error(f"Failed to connect to Primary Interface: {e}")
-    #         self.primary_socket = None
-
-    def send_urscript(self, script_string: str):
-        output = {
-            "service_name": "script_command/send_script",
-            "service_type": "std_msgs/msg/String",
-            "success": False,
-            "message": "",
-            "content": None,
-        }
-
-        try:
-            clean_script = script_string.strip()
-
-            if not clean_script:
-                output["message"] = "Empty script, nothing sent."
-                self.response_queue.put(output)
-                return
-
-            if "\n" in clean_script:
-                if not clean_script.startswith("def") and not clean_script.startswith("sec"):
-                    formatted_script = "def gui_program():\n"
-                    for line in clean_script.splitlines():
-                        stripped = line.rstrip()
-                        if stripped:
-                            formatted_script += f"  {stripped}\n"
-                    formatted_script += "end\n"
-                else:
-                    formatted_script = clean_script
-                    if not formatted_script.endswith("\n"):
-                        formatted_script += "\n"
-            else:
-                formatted_script = clean_script
-                if not formatted_script.endswith("\n"):
-                    formatted_script += "\n"
-
-            msg = String()
-            msg.data = formatted_script
-            self.script_command_pub.publish(msg)
-
-            output["success"] = True
-            output["message"] = "URScript published to script_command topic."
-            self.get_logger().info("Published URScript.")
-
-        except Exception as e:
-            output["message"] = f"Failed to publish URScript:{e}"
-            self.get_logger().error(output["message"])
-
-        self.response_queue.put(output)
-
-    def connect_rtde_interface(self):
-        try:
-            self.rtde_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.rtde_socket.settimeout(2.0)
-            self.rtde_socket.connect((self.robot_ip, 30004))
-
-            proto_request = struct.pack("!HBH", 5, 0x56, 2)
-            self.rtde_socket.sendall(proto_request)
-            ptype, payload = self._rtde_recv_packet()
-            if ptype != 0x76:
-                self.get_logger().warning("Unexpected RDE version response: 0x{ptype:02x}")
-
-            output_recipe = "timestamp, actual_q, actual_qd"
-            output_recipe_bytes = output_recipe.encode("utf-8")
-            output_msg = struct.pack("!HB", 3 + len(output_recipe_bytes), 0x4F) + output_recipe_bytes
-            self.rtde_socket.sendall(output_msg)
-            ptpe, payload = self._rtde_recv_packet()
-            if ptype == 0x4F and len(payload) > 0:
-                self.rtde_output_recipe_id = payload[0]
-                self.get_logger().info("RTDE output recipe ID: {self.rtde_output_recipe_id}")
-            else:
-                self.get_logger().error("Failed to setup RTDE output recipe.")
-                self.rtde_socket.close()
-                self.rtde_socket = None
-                return
-
-            input_recipe = "input_double_register_0"
-            input_recipe_bytes = input_recipe.encode("utf-8")
-            input_msg = struct.pack("!HB", 3 + len(input_recipe_bytes), 0x49) + input_recipe_bytes
-            self.rtde_socket.sendall(input_msg)
-            ptype, payload = self._rtde_recv_packet()
-            if ptype == 0x49 and len(payload) > 0:
-                self.rtde_input_recipe_id = payload[0]
-                self.get_logger().info("RTDE input recipe ID: {self.rtde_input_recipe_id}")
-            else:
-                self.get_logger().warning("Failed to setup RTDE input recipe. Input writing disabled.")
-                self.rtde_input_recipe_id = None
-
-            start_msg = struct.pack("!HB", 3, 0x53)
-            self.rtde_socket_sendall(start_msg)
-            ptype, payload = self._rtde_recv_packet()
-            if ptype == 0x53 and len(payload) > 0 and payload[0] == 1:
-                self.get_logger().info("RTDE synchronization started successfully.")
-            else:
-                self.get_logger().error("RTDE synchronization start rejected.")
-                self.rtde_socket.close()
-                self.rtde_socket = None
-                return
-
-            self.rtde_running = True
-            self.rtde_thread = threading.Thread(target=self._rtde_loop, daemon=True)
-            self.rtde_thread.start()
-            self.get_logger().info("RTDE telemetry thread started for {self.robo_ip}:30004")
-        except Exception as e:
-            e
-            self.get_logger().error("Failed to connect to RTDE interface: {e}")
-            self.rtde_socket = None
-
-    def _rtde_recv_packet(self):
-        header = self._recv_exact(3)
-        packet_len = struct.unpack("!H", header[0:2])[0]
-        packet_type = header[2]
-        payload = b""
-        if packet_len > 3:
-            payload = self._recv_exact(packet_len - 3)
-        return packet_type, payload
-
-    def _recv_exact(self, num_bytes):
-        data = b""
-        while len(data) < num_bytes:
-            chunk = self.rtde_socket.recv(num_bytes - len(data))
-            if not chunk:
-                raise ConnectionError("RTDE connection closed by remote host.")
-            data += chunk
-        return data
-
-    def _rtde_loop(self):
-        # RTDE requires a continuous read command after setup to start synchronization
-        # try:
-        #     self.rtde_socket.sendall(b"\x00\x03S")
-        # except Exception as e:
-        #     self.get_logger().error(f"RTDE Start exception: {e}")
-        #     return
-
-        while self.rtde_running:
-            try:
-                header = self._recv_exact(3)
-                packet_len = struct.unpack("!H", header[0:2])[0]
-                packet_type = header[2]
-
-                payload = b""
-                if packet_len > 3:
-                    payload = self._recv_exact(packet_len - 3)
-
-                if packet_type == 0x55 and len(payload) > 1:
-                    recipe_id = payload[0]
-                    recipe_id
-                    data = payload[1:]
-                    data
-
-                    if len(payload) >= 104:
-                        timestamp = struct.unpack("!d", payload[0:8])[0]
-                        actual_q = list(struct.unpack("!6d", payload[8:56]))
-                        actual_qd = list(struct.unpack("!6d", payload[56:104]))
-
-                        with self.telemetry_lock:
-                            self.latest_telemetry["timestamp"] = timestamp
-                            self.latest_telemetry["actual_q"] = actual_q
-                            self.latest_telemetry["actual_qd"] = actual_qd
-
-            except socket.timeout:
-                continue
-            except Exception as e:
-                self.get_logger().error(f"RTDE Loop execution error: {e}")
-                break
-
-        self.get_logger().warning("RTDE telemetry loop has exited.")
-
-    def send_rtde_input(self, value: float):
-        if not self.rtde_socket:
-            self.get_logger().warning("RTDE socket not connected.")
-            return False
-
-        if not hasattr(self, "rtde_input_recipe_id") or self.rtde_input_recipe_id is None:
-            self.get_logger().warning("RTDE input recipe not configured.")
-            return False
-
-        try:
-            payload = struct.pack("!Bd", self.rtde_input_recipe_id, value)
-            header = struct.pack("!HB", 3 + len(payload), 0x55)
-            self.rtde_socket.sendall(header + payload)
-            return True
-        except Exception as e:
-            self.get_logger().error(f"Failed to transmit RTDE input filed: {e}")
-            return False
 
     ## ROS2 Controller Manager functions
     # self.control_request = ListControllers.Request() --> here for referencing, delete l8r
