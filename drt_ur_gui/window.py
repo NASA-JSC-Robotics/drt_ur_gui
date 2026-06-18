@@ -160,6 +160,8 @@ class URGui(QMainWindow):
         self.b_send.clicked.connect(self.send_service_clicked)
         self.b_freedriveToggle.toggled.connect(self.freedrive_toggle_clicked)
         # TODO: self.b_watch.clicked.connect(
+        # Adding freedrive toggle button
+        self.b_freedriveToggle.toggled.connect(self.freedrive_toggle_clicked)
         return
 
     def _init_service_selector(self):
