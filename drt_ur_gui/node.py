@@ -311,7 +311,10 @@ class RemoteURCmdr(Node):
             msg.data = True
             self.freedrive_pub.publish(msg)
 
-    def _get_active_controllers(self):
+    def enable_ros2_freedrive(self):
+        if not self.switch_client.service_is_ready():
+            self.get_logger().error("Controller manager service unavailable.")
+            return False
 
         self.current_controllers.clear()
 
@@ -352,13 +355,6 @@ class RemoteURCmdr(Node):
 
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
-
-    def enable_ros2_freedrive(self):
-        if not self.switch_client.service_is_ready():
-            self.get_logger().error("Controller manager service unavailable.")
-            return False
-
-        self._get_active_controllers()
 
     def _enable_switch_done_callback(self, future):
         res = future.result()
