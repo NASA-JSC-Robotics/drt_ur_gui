@@ -317,7 +317,7 @@ class RemoteURCmdr(Node):
             return False
 
         self.current_controllers.clear()
-
+        self.get_logger().info("enable freedrive triggered")
         if not self.control_list_client.service_is_ready():
             self.get_logger().error("Controller manager service unavailable. (-1)")
             return False
@@ -334,7 +334,9 @@ class RemoteURCmdr(Node):
             return
         else:
             self.get_logger().info("List of controllers received.")
-            for controller in controller_response:
+            self.current_controllers.clear()
+            self.get_logger().info("Clearing list for a second time.")
+            for controller in controller_response.controller:
                 if controller.state == "active":
                     if controller.required_command_interfaces:
                         self.current_controllers.append(controller.name)
@@ -343,6 +345,8 @@ class RemoteURCmdr(Node):
             self.get_logger().error("No controllers registered as active.")
             return
         else:
+            if "io_and_status_controller" in self.current_controllers:
+                self.current_controllers.remove("io_and_status_controller")
             # Switch controllers to bring freedrive online
             req = SwitchController.Request()
             req.deactivate_controllers = self.current_controllers
