@@ -324,14 +324,26 @@ class RemoteURCmdr(Node):
             return False
 
         self.freedrive_active = True
-        self._switch_controllers_callback(self, self.freedrive_active)
+        self._switch_controllers(self)
 
         # controller_call = self.control_list_client.call_async(self.control_request)
         # controller_call.add_done_callback(self._enable_control_done_callback)
 
-    def _switch_controllers_callback(self, freedrive_active):
+    def disable_ros2_freedrive(self):
+        if not self.switch_client.service_is_ready():
+            self.get_logger().error("Controller manager service unavailable.")
+            return False
+
+        if not self.current_controllers:
+            self.get_logger().error("List of active controllers is empty.")
+            return
+        else:
+            self.freedrive_active = False
+            self._switch_controllers(self)
+
+    def _switch_controllers(self):
         # Controller request to get the list of active controllers before freedrive mode is enabled
-        if freedrive_active is True:
+        if self.freedrive_active is True:
             controller_call = self.control_list_client.call_async(self.control_request)
             controller_response = controller_call.result()
             if controller_response is None:
@@ -355,7 +367,7 @@ class RemoteURCmdr(Node):
             )
 
         # Switching request that activates/deactivates the controllers
-        if freedrive_active is True and self.current_controllers:
+        if self.freedrive_active is True and self.current_controllers:
             req = SwitchController.Request()
             req.deactivate_controllers = self.current_controllers
             req.activate_controllers = self.freedrive_controller
@@ -363,12 +375,12 @@ class RemoteURCmdr(Node):
             req.strictness = SwitchController.Request.STRICT
 
             future = self.switch_client.call_async(req)
-            future.add_done_callback(self._switch_freedrive_status_callback)
+            future.add_done_callback(self.freedrive_status_callback)
 
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
-        elif freedrive_active is False and self.current_controllers:
+        elif self.freedrive_active is False and self.current_controllers:
             req = SwitchController.Request()
             req.deactivate_controllers = self.freedrive_controller
             req.activate_controllers = self.current_controllers
@@ -376,16 +388,29 @@ class RemoteURCmdr(Node):
             req.strictness = SwitchController.Request.STRICT
 
             future = self.switch_client.call_async(req)
-            future.add_done_callback(self._switch_freedrive_status_callback)
+            future.add_done_callback(self._freedrive_status_callback)
             self.destroy_timer(self.heartbeat_timer)
 
-        elif freedrive_active is True and not self.current_controllers:
+        elif self.freedrive_active is True and not self.current_controllers:
             self.get_logger().error("No controllers registered as active.")
             return
 
-        elif freedrive_active is False and not self.current_controllers:
+        elif self.freedrive_active is False and not self.current_controllers:
             self.get_logger().error("List of active controllers is empty.")
             return
+
+    def _freedrive_status_callback(self, future):
+        res = future.result()
+        state = self.freedrive_active
+
+        if res.ok and state is True:
+            self.get_logger().info("Successfully paused tracking. Starting freedrive.")
+        elif res.ok and state is False:
+            self.get_logger().info("Freedrive mode disabled.")
+        elif not res.ok and state is True:
+            self.get_logger().error("Failed to switch controllers.")
+        elif not res.ok and state is False:
+            self.get_logger().error("Failed to restore previous controllers.")
 
     # def _enable_control_done_callback(self, controller_call):
     #     """Because of how the queue between QT and ROS2 is set up, the controllers will switch inside of the callback function
@@ -423,41 +448,18 @@ class RemoteURCmdr(Node):
     #         # Start the freedrive heartbeat @ 2Hz
     #         self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
-    def _switch_freedrive_status_callback(self, future, freedrive_active):
-        res = future.result()
-        state = freedrive_active
+    # used to belong to disable freedrive mode
 
-        if res.ok and state is True:
-            self.get_logger().info("Successfully paused tracking. Starting freedrive.")
-        elif res.ok and state is False:
-            self.get_logger().info("Freedrive mode disabled.")
-        elif not res.ok and state is True:
-            self.get_logger().error("Failed to switch controllers.")
-        elif not res.ok and state is False:
-            self.get_logger().error("Failed to restore previous controllers.")
+    # req = SwitchController.Request()
+    # req.deactivate_controllers = self.freedrive_controller
+    # req.activate_controllers = self.current_controllers
 
-    def disable_ros2_freedrive(self):
-        if not self.switch_client.service_is_ready():
-            self.get_logger().error("Controller manager service unavailable.")
-            return False
+    # req.strictness = SwitchController.Request.STRICT
+    # self.freedrive_active = False
 
-        if not self.current_controllers:
-            self.get_logger().error("List of active controllers is empty.")
-            return
-        else:
-            self.freedrive_active = False
-            self._switch_controllers_callback(self, self.freedrive_active)
-
-            # req = SwitchController.Request()
-            # req.deactivate_controllers = self.freedrive_controller
-            # req.activate_controllers = self.current_controllers
-
-            # req.strictness = SwitchController.Request.STRICT
-            # self.freedrive_active = False
-
-            # future = self.switch_client.call_async(req)
-            # future.add_done_callback(self._switch_freedrive_status_callback)
-            # self.destroy_timer(self.heartbeat_timer)
+    # future = self.switch_client.call_async(req)
+    # future.add_done_callback(self._switch_freedrive_status_callback)
+    # self.destroy_timer(self.heartbeat_timer)
 
     # def _disable_switch_done_callback(self, future):
     #     res = future.result()
