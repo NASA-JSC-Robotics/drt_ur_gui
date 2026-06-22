@@ -335,39 +335,45 @@ class RemoteURCmdr(Node):
             return
         else:
             self.get_logger().info("List of controllers received.")
-            self.current_controllers.clear()
-            self.get_logger().info("Clearing list for a second time.")
             for controller in controller_response.controller:
                 if controller.state == "active":
-                    if controller.required_command_interfaces:
+                    if controller.required_command_interfaces and not controller.type("ur_controllers/GPIOController"):
                         self.current_controllers.append(controller.name)
 
         if not self.current_controllers:
             self.get_logger().error("No controllers registered as active.")
             return
-        else:
-            if "io_and_status_controller" in self.current_controllers:
-                self.current_controllers.remove("io_and_status_controller")
+            # else:
+            #     if "io_and_status_controller" in self.current_controllers:
+            #         self.current_controllers.remove("io_and_status_controller")
+
             # Switch controllers to bring freedrive online
+
             req = SwitchController.Request()
             req.deactivate_controllers = self.current_controllers
             req.activate_controllers = self.freedrive_controller
 
             req.strictness = SwitchController.Request.STRICT
+            self.freedrive_active = True
 
             future = self.switch_client.call_async(req)
-            future.add_done_callback(self._enable_switch_done_callback)
+            future.add_done_callback(self._switch_freedrive_status_callback)
 
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
-    def _enable_switch_done_callback(self, future):
+    def _switch_freedrive_status_callback(self, future, freedrive_active):
         res = future.result()
-        if res.ok:
+        state = freedrive_active
+
+        if res.ok and state is True:
             self.get_logger().info("Successfully paused tracking. Starting freedrive.")
-            self.freedrive_active = True
-        else:
+        elif res.ok and state is False:
+            self.get_logger().info("Freedrive mode disabled.")
+        elif not res.ok and state is True:
             self.get_logger().error("Failed to switch controllers.")
+        elif not res.ok and state is False:
+            self.get_logger().error("Failed to restore previous controllers.")
 
     def disable_ros2_freedrive(self):
         if not self.switch_client.service_is_ready():
@@ -383,15 +389,24 @@ class RemoteURCmdr(Node):
             req.activate_controllers = self.current_controllers
 
             req.strictness = SwitchController.Request.STRICT
+            self.freedrive_active = False
 
             future = self.switch_client.call_async(req)
-            future.add_done_callback(self._disable_switch_done_callback)
+            future.add_done_callback(self._switch_freedrive_status_callback)
             self.destroy_timer(self.heartbeat_timer)
 
-    def _disable_switch_done_callback(self, future):
-        res = future.result()
-        if res.ok:
-            self.get_logger().info("Freedrive mode disabled.")
-            self.freedrive_active = False
-        else:
-            self.get_logger().error("Failed to restore previous controllers.")
+    # def _disable_switch_done_callback(self, future):
+    #     res = future.result()
+    #     if res.ok:
+    #         self.get_logger().info("Freedrive mode disabled.")
+    #         self.freedrive_active = False
+    #     else:
+    #         self.get_logger().error("Failed to restore previous controllers.")
+
+    # def _enable_switch_done_callback(self, future):
+    #     res = future.result()
+    #     if res.ok:
+    #         self.get_logger().info("Successfully paused tracking. Starting freedrive.")
+    #         self.freedrive_active = True
+    #     else:
+    #         self.get_logger().error("Failed to switch controllers.")
