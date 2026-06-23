@@ -138,7 +138,7 @@ class RemoteURCmdr(Node):
         self.control_request = ListControllers.Request()
         self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
         self.freedrive_active = False
-        self.current_controllers = []
+        self.active_controllers = []
         self.freedrive_controller = ["freedrive_mode_controller"]
 
     def _init_params(self):
@@ -324,33 +324,29 @@ class RemoteURCmdr(Node):
             return False
 
         # Get the list of currently active controllers, store them, and switch to freedrive mode
-        self.current_controllers.clear()
+        self.active_controllers.clear()
         self.freedrive_active = True
-        active_controller_call = self.control_list_client.call_async(self.control_request)
-        active_controller_call.add_done_callback(self._get_active_controllers)
-
-        while not active_controller_call.done():
-            pass
-        else:
-            self._switch_controllers
+        get_all_controllers = self.control_list_client.call_async(self.control_request)
+        get_all_controllers.add_done_callback(self._switch_to_freedrive)
 
     def disable_ros2_freedrive(self):
         if not self.switch_client.service_is_ready():
             self.get_logger().error("Controller manager service unavailable.")
             return False
 
-        if not self.current_controllers:
+        if not self.active_controllers:
             self.get_logger().error("List of active controllers is empty.")
             return
         else:
             self.freedrive_active = False
-            self._switch_controllers()
+            self._process_switch_controllers(turn_ON=self.active_controllers, turn_OFF=self.freedrive_controller)
+            self.destroy_timer(self.heartbeat_timer)
 
-    def _get_active_controllers(self, active_controller_call):
+    def _switch_to_freedrive(self, get_all_controllers):
         # Controller request to get the list of active controllers before freedrive mode is enabled
-        controller_response = active_controller_call.result()
+        controller_response = get_all_controllers.result()
         if controller_response is None:
-            self.get_logger().error("Failed to retrieve list of active controllers.")
+            self.get_logger().error("Failed to retrieve list of all controllers.")
             return
         else:
             self.get_logger().info("List of controllers received.")
@@ -360,49 +356,64 @@ class RemoteURCmdr(Node):
                         controller.required_command_interfaces
                         and not controller.type == "ur_controllers/GPIOController"
                     ):
-                        self.current_controllers.append(controller.name)
+                        self.active_controllers.append(controller.name)
 
-        if not self.current_controllers:
+        if not self.active_controllers:
             self.get_logger().error("No controllers registered as active.(-1)")
             return
-        # else:
-        #     self._switch_controllers()
-
-    def _switch_controllers(self):
-        # Switching request that activates/deactivates the controllers
-        if self.freedrive_active is True and self.current_controllers:
-            req = SwitchController.Request()
-            req.deactivate_controllers = self.current_controllers
-            req.activate_controllers = self.freedrive_controller
-
-            req.strictness = SwitchController.Request.STRICT
-
-            future = self.switch_client.call_async(req)
-            future.add_done_callback(self._freedrive_status_callback)
-
+        else:
+            self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
-        elif self.freedrive_active is False and self.current_controllers:
+    def _process_switch_controllers(self, turn_ON, turn_OFF):
+        if not turn_ON or not turn_OFF:
+            self.get_logger().error("One of the controller lists is empty.")
+            return
+        else:
             req = SwitchController.Request()
-            req.deactivate_controllers = self.freedrive_controller
-            req.activate_controllers = self.current_controllers
+            req.deactivate_controllers = turn_OFF
+            req.activate_controllers = turn_ON
 
             req.strictness = SwitchController.Request.STRICT
 
             future = self.switch_client.call_async(req)
-            future.add_done_callback(self._freedrive_status_callback)
-            self.destroy_timer(self.heartbeat_timer)
+            future.add_done_callback(self._successful_controller_switch)
 
-        elif self.freedrive_active is True and not self.current_controllers:
-            self.get_logger().error("No controllers registered as active.")
-            return
+        # # Switching request that activates/deactivates the controllers
+        # if self.freedrive_active is True and self.current_controllers:
+        #     req = SwitchController.Request()
+        #     req.deactivate_controllers = self.current_controllers
+        #     req.activate_controllers = self.freedrive_controller
 
-        elif self.freedrive_active is False and not self.current_controllers:
-            self.get_logger().error("List of active controllers is empty.")
-            return
+        #     req.strictness = SwitchController.Request.STRICT
 
-    def _freedrive_status_callback(self, future):
+        #     future = self.switch_client.call_async(req)
+        #     future.add_done_callback(self._freedrive_status_callback)
+
+        #     # Start the freedrive heartbeat @ 2Hz
+        #     self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
+
+        # elif self.freedrive_active is False and self.current_controllers:
+        #     req = SwitchController.Request()
+        #     req.deactivate_controllers = self.freedrive_controller
+        #     req.activate_controllers = self.current_controllers
+
+        #     req.strictness = SwitchController.Request.STRICT
+
+        #     future = self.switch_client.call_async(req)
+        #     future.add_done_callback(self._freedrive_status_callback)
+        #     self.destroy_timer(self.heartbeat_timer)
+
+        # elif self.freedrive_active is True and not self.current_controllers:
+        #     self.get_logger().error("No controllers registered as active.")
+        #     return
+
+        # elif self.freedrive_active is False and not self.current_controllers:
+        #     self.get_logger().error("List of active controllers is empty.")
+        #     return
+
+    def _successful_controller_switch(self, future):
         res = future.result()
         state = self.freedrive_active
 
