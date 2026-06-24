@@ -149,13 +149,18 @@ class RemoteURCmdr(Node):
         self.response_queue = queue.Queue()
 
         ## For freedrive mode
+        self.freedrive_direction = self.get_parameter("freedrive_direction").get_parameter_value().string_value
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
         self.control_request = ListControllers.Request()
-        self.freedrive_pub = self.create_publisher(Bool, "/freedrive_mode_controller/enable_freedrive_mode", 10)
+        self.freedrive_pub = self.create_publisher(Bool, "/".join(["_".join([self.freedrive_direction,
+                                                                  "freedrive_mode_controller/enable_freedrive_mode"])]), 
+                                                                  10)
+# "/freedrive_mode_controller/enable_freedrive_mode", 10)
         self.freedrive_active = False
         self.active_controllers = []
-        self.freedrive_controller = ["freedrive_mode_controller"]
+        self.freedrive_controller = ["/".join(["_".join([self.freedrive_direction,
+                                                                  "freedrive_mode_controller"])])]
 
     def _init_params(self):
         self.declare_parameters(
@@ -174,6 +179,7 @@ class RemoteURCmdr(Node):
                 ("arm.stylesheet", ""),
                 ("program", "default.urp"),
                 ("logo_file_name", ""),
+                ("freedrive_direction", ""),
             ],
         )
 
@@ -386,6 +392,7 @@ class RemoteURCmdr(Node):
         else:
             self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
 
+            
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
