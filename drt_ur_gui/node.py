@@ -100,6 +100,13 @@ class RemoteURCmdr(Node):
     dashboard_client_name: Stores the parameter of the same name
     service_list_path: Stores the parameter of the same name
 
+    (&& Freedrive Mode Related Attributes &&)
+    switch_client: Service client to switch the state of controllers
+    control_list_client: For retrieving the list of all controllers (both active and inactive) on the robot
+    freedrive_pub: Publisher to keep freedrive mode active when enabled
+    active_controllers: For storing the list of currently active controllers
+    freedrive_controller: Stores the freedrive mode controller
+
     Methods:
     --------
     _init_params: Initializes (declares) parameters and defaults
@@ -113,6 +120,15 @@ class RemoteURCmdr(Node):
             name (str): the name of the service that is being requested
             content (dict): the content of the service request, provided as a {field: value} dict
     _process_response: Queues incoming service request responses for GUI thread
+
+    (&& Freedrive Mode Related Methods &&)
+    _run_freedrive_heartbeat: Keepalive message for freedrive mode
+    enable_ros2_freedrive: Turns freedrive mode on and de-activates the current controllers
+    disable_ros2_freedrive: Turns freedrive mode off and re-activates the previous controllers
+    _switch_to_freedrive: Acquires the list of all controllers, stores the currently active controllers
+                          and the safety monitoring controllers
+    _process_switch_controllers: Actives and de-activates the requested controllers
+    _successful_controller_switch: Checks for the successful de/activation of controllers
 
     """
 
@@ -132,7 +148,7 @@ class RemoteURCmdr(Node):
         self.callbacks = {}
         self.response_queue = queue.Queue()
 
-        ## For freedrive mode: Adding ROS2 control and switch control manager
+        ## For freedrive mode
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
         self.control_request = ListControllers.Request()
@@ -307,20 +323,24 @@ class RemoteURCmdr(Node):
         return
 
     ## ROS2 Controller Manager functions
+    """ Unlike the above services that run through UR's dashboard client, Freedrive mode is backed by ROS2's Controller Manager.
+    Freedrive mode is not a currently native feature of UR's dashboard client. """
+
     def _run_freedrive_heartbeat(self):
+        # To keep the freedrive mode active
         if self.freedrive_active:
             msg = Bool()
             msg.data = True
             self.freedrive_pub.publish(msg)
 
     def enable_ros2_freedrive(self):
-        # Check if the control and switch control managers are available
+        # Check if the controller and switch controller managers are available
         if not self.switch_client.service_is_ready():
-            self.get_logger().error("Controller manager service unavailable.")
+            self.get_logger().error("Switch Controller manager service unavailable.")
             return False
 
         if not self.control_list_client.service_is_ready():
-            self.get_logger().error("Controller manager service unavailable. (-1)")
+            self.get_logger().error("Controller manager service unavailable.")
             return False
 
         # Get the list of currently active controllers, store them, and switch to freedrive mode
@@ -330,10 +350,12 @@ class RemoteURCmdr(Node):
         get_all_controllers.add_done_callback(self._switch_to_freedrive)
 
     def disable_ros2_freedrive(self):
+        # Check if the switch controller manager is available
         if not self.switch_client.service_is_ready():
-            self.get_logger().error("Controller manager service unavailable.")
+            self.get_logger().error("Switch Controller manager service unavailable.")
             return False
 
+        # Bring the previously active controllers back online
         if not self.active_controllers:
             self.get_logger().error("List of active controllers is empty.")
             return
@@ -355,14 +377,15 @@ class RemoteURCmdr(Node):
                     if (
                         controller.required_command_interfaces
                         and not controller.type == "ur_controllers/GPIOController"
-                    ):
+                    ):  # white listed the io and status controller for e-stop monitoring
                         self.active_controllers.append(controller.name)
 
         if not self.active_controllers:
-            self.get_logger().error("No controllers registered as active.(-1)")
+            self.get_logger().error("No controllers registered as active.")
             return
         else:
             self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
+
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
@@ -380,39 +403,6 @@ class RemoteURCmdr(Node):
             future = self.switch_client.call_async(req)
             future.add_done_callback(self._successful_controller_switch)
 
-        # # Switching request that activates/deactivates the controllers
-        # if self.freedrive_active is True and self.current_controllers:
-        #     req = SwitchController.Request()
-        #     req.deactivate_controllers = self.current_controllers
-        #     req.activate_controllers = self.freedrive_controller
-
-        #     req.strictness = SwitchController.Request.STRICT
-
-        #     future = self.switch_client.call_async(req)
-        #     future.add_done_callback(self._freedrive_status_callback)
-
-        #     # Start the freedrive heartbeat @ 2Hz
-        #     self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
-
-        # elif self.freedrive_active is False and self.current_controllers:
-        #     req = SwitchController.Request()
-        #     req.deactivate_controllers = self.freedrive_controller
-        #     req.activate_controllers = self.current_controllers
-
-        #     req.strictness = SwitchController.Request.STRICT
-
-        #     future = self.switch_client.call_async(req)
-        #     future.add_done_callback(self._freedrive_status_callback)
-        #     self.destroy_timer(self.heartbeat_timer)
-
-        # elif self.freedrive_active is True and not self.current_controllers:
-        #     self.get_logger().error("No controllers registered as active.")
-        #     return
-
-        # elif self.freedrive_active is False and not self.current_controllers:
-        #     self.get_logger().error("List of active controllers is empty.")
-        #     return
-
     def _successful_controller_switch(self, future):
         res = future.result()
         state = self.freedrive_active
@@ -425,68 +415,3 @@ class RemoteURCmdr(Node):
             self.get_logger().error("Failed to switch controllers.")
         elif not res.ok and state is False:
             self.get_logger().error("Failed to restore previous controllers.")
-
-    # def _enable_control_done_callback(self, controller_call):
-    #     """Because of how the queue between QT and ROS2 is set up, the controllers will switch inside of the callback function
-    #     to ensure that the control manager actually has the list of active controllers. &&"""
-    #     controller_response = controller_call.result()
-    #     if controller_response is None:
-    #         self.get_logger().error("Failed to retrieve list of active controllers.")
-    #         return
-    #     else:
-    #         self.get_logger().info("List of controllers received.")
-    #         for controller in controller_response.controller:
-    #             if controller.state == "active":
-    #                 if controller.required_command_interfaces and not controller.type("ur_controllers/GPIOController"):
-    #                     self.current_controllers.append(controller.name)
-
-    #     if not self.current_controllers:
-    #         self.get_logger().error("No controllers registered as active.")
-    #         return
-    #         # else:
-    #         #     if "io_and_status_controller" in self.current_controllers:
-    #         #         self.current_controllers.remove("io_and_status_controller")
-
-    #         # Switch controllers to bring freedrive online
-
-    #         req = SwitchController.Request()
-    #         req.deactivate_controllers = self.current_controllers
-    #         req.activate_controllers = self.freedrive_controller
-
-    #         req.strictness = SwitchController.Request.STRICT
-    #         self.freedrive_active = True
-
-    #         future = self.switch_client.call_async(req)
-    #         future.add_done_callback(self._switch_freedrive_status_callback)
-
-    #         # Start the freedrive heartbeat @ 2Hz
-    #         self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
-
-    # used to belong to disable freedrive mode
-
-    # req = SwitchController.Request()
-    # req.deactivate_controllers = self.freedrive_controller
-    # req.activate_controllers = self.current_controllers
-
-    # req.strictness = SwitchController.Request.STRICT
-    # self.freedrive_active = False
-
-    # future = self.switch_client.call_async(req)
-    # future.add_done_callback(self._switch_freedrive_status_callback)
-    # self.destroy_timer(self.heartbeat_timer)
-
-    # def _disable_switch_done_callback(self, future):
-    #     res = future.result()
-    #     if res.ok:
-    #         self.get_logger().info("Freedrive mode disabled.")
-    #         self.freedrive_active = False
-    #     else:
-    #         self.get_logger().error("Failed to restore previous controllers.")
-
-    # def _enable_switch_done_callback(self, future):
-    #     res = future.result()
-    #     if res.ok:
-    #         self.get_logger().info("Successfully paused tracking. Starting freedrive.")
-    #         self.freedrive_active = True
-    #     else:
-    #         self.get_logger().error("Failed to switch controllers.")
