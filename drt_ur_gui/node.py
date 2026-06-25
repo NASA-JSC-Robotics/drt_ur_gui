@@ -153,14 +153,14 @@ class RemoteURCmdr(Node):
         self.switch_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
         self.control_request = ListControllers.Request()
-        self.freedrive_pub = self.create_publisher(Bool, "/".join(["_".join([self.freedrive_direction,
-                                                                  "freedrive_mode_controller/enable_freedrive_mode"])]), 
-                                                                  10)
-# "/freedrive_mode_controller/enable_freedrive_mode", 10)
+        self.freedrive_pub = self.create_publisher(
+            Bool, [f"/{self.freedrive_direction}freedrive_mode_controller/enable_freedrive_mode"], 10
+        )
         self.freedrive_active = False
         self.active_controllers = []
-        self.freedrive_controller = ["/".join(["_".join([self.freedrive_direction,
-                                                                  "freedrive_mode_controller"])])]
+        self.freedrive_controller = [
+            f"{self.freedrive_direction}freedrive_mode_controller"
+        ]  # TODO: add the underscore to the direction itself in the yaml file, not here bc its gonna make everything explode on clr
 
     def _init_params(self):
         self.declare_parameters(
@@ -392,7 +392,6 @@ class RemoteURCmdr(Node):
         else:
             self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
 
-            
             # Start the freedrive heartbeat @ 2Hz
             self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
