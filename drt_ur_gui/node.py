@@ -154,13 +154,13 @@ class RemoteURCmdr(Node):
         self.control_list_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
         self.control_request = ListControllers.Request()
         self.freedrive_pub = self.create_publisher(
-            Bool, [f"/{self.freedrive_direction}freedrive_mode_controller/enable_freedrive_mode"], 10
+            Bool, f"/{self.freedrive_direction}freedrive_mode_controller/enable_freedrive_mode", 10
         )
         self.freedrive_active = False
         self.active_controllers = []
         self.freedrive_controller = [
             f"{self.freedrive_direction}freedrive_mode_controller"
-        ]  # TODO: add the underscore to the direction itself in the yaml file, not here bc its gonna make everything explode on clr
+        ]
 
     def _init_params(self):
         self.declare_parameters(
@@ -362,13 +362,13 @@ class RemoteURCmdr(Node):
             return False
 
         # Bring the previously active controllers back online
-        if not self.active_controllers:
-            self.get_logger().error("List of active controllers is empty.")
-            return
-        else:
-            self.freedrive_active = False
-            self._process_switch_controllers(turn_ON=self.active_controllers, turn_OFF=self.freedrive_controller)
-            self.destroy_timer(self.heartbeat_timer)
+        # if not self.active_controllers:
+        #     self.get_logger().error("List of active controllers is empty.")
+        #     return
+        # else:
+        self.freedrive_active = False
+        self._process_switch_controllers(turn_ON=self.active_controllers, turn_OFF=self.freedrive_controller)
+        self.destroy_timer(self.heartbeat_timer)
 
     def _switch_to_freedrive(self, get_all_controllers):
         # Controller request to get the list of active controllers before freedrive mode is enabled
@@ -382,32 +382,32 @@ class RemoteURCmdr(Node):
                 if controller.state == "active":
                     if (
                         controller.required_command_interfaces
-                        and not controller.type == "ur_controllers/GPIOController"
+                        and not (controller.type == "ur_controllers/GPIOController" or controller.type == "ur_controllers/FreedriveModeController")
                     ):  # white listed the io and status controller for e-stop monitoring
                         self.active_controllers.append(controller.name)
 
-        if not self.active_controllers:
-            self.get_logger().error("No controllers registered as active.")
-            return
-        else:
-            self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
+        # if not self.active_controllers:
+        self.get_logger().error("No controllers registered as active.")
+    #     return
+    # else:
+        self._process_switch_controllers(turn_ON=self.freedrive_controller, turn_OFF=self.active_controllers)
 
-            # Start the freedrive heartbeat @ 2Hz
-            self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
+        # Start the freedrive heartbeat @ 2Hz
+        self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
     def _process_switch_controllers(self, turn_ON, turn_OFF):
-        if not turn_ON or not turn_OFF:
-            self.get_logger().error("One of the controller lists is empty.")
-            return
-        else:
-            req = SwitchController.Request()
-            req.deactivate_controllers = turn_OFF
-            req.activate_controllers = turn_ON
+        # if not turn_ON or not turn_OFF:
+        #     self.get_logger().error("One of the controller lists is empty.")
+        #     return
+        # else:
+        req = SwitchController.Request()
+        req.deactivate_controllers = turn_OFF
+        req.activate_controllers = turn_ON
 
-            req.strictness = SwitchController.Request.STRICT
+        req.strictness = SwitchController.Request.STRICT
 
-            future = self.switch_client.call_async(req)
-            future.add_done_callback(self._successful_controller_switch)
+        future = self.switch_client.call_async(req)
+        future.add_done_callback(self._successful_controller_switch)
 
     def _successful_controller_switch(self, future):
         res = future.result()
