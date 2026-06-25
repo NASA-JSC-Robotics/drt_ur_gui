@@ -361,11 +361,6 @@ class RemoteURCmdr(Node):
             self.get_logger().error("Switch Controller manager service unavailable.")
             return False
 
-        # Bring the previously active controllers back online
-        # if not self.active_controllers:
-        #     self.get_logger().error("List of active controllers is empty.")
-        #     return
-        # else:
         self.freedrive_active = False
         self._process_switch_controllers(turn_ON=self.active_controllers, turn_OFF=self.freedrive_controller)
         self.destroy_timer(self.heartbeat_timer)
