@@ -133,16 +133,6 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="b_sendScript">
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sends /primary_interface/sendScript service request&lt;/p&gt;&lt;p&gt;- Sends a URScript to the UR Arm over the Primary Interface Port 30001&lt;/p&gt;&lt;p&gt;- Type: std_srvs/srv/Trigger&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="text">
-                <string>Send Script</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="QPushButton" name="b_freedriveToggle">
                <property name="toolTip">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sends ROS2 request to enable/disable freedrive mode&lt;/p&gt;&lt;p&gt;- ros2_control &lt;/p&gt;&lt;p&gt;- to safely swap controllers &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -348,15 +338,12 @@
       </widget>
       <widget class="QPlainTextEdit" name="scriptInputText">
        <property name="placeholderText">
-        <string>Type multi-line URScript commands here.</string>
+        <string></string>
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="readOnly">
-        <bool>false</bool>
-        </property>
         <property name="enabled">
          <bool>true</bool>
         </property>
@@ -372,12 +359,12 @@
        <property name="styleSheet">
         <string notr="true">font: 10pt "Monospace";</string>
        </property>
-       <!-- <property name="readOnly">
+       <property name="readOnly">
         <bool>true</bool>
        </property>
        <property name="ReadOnly" stdset="0">
         <bool>true</bool>
-       </property> -->
+       </property>
       </widget>
      </widget>
     </item>
