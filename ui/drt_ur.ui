@@ -354,7 +354,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;UR Script sender&lt;/p&gt;&lt;p&gt;Input Text box to write and send UR Script commands&lt;/p&gt;&lt;p&gt;Used to be the ROS Out Monitor&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;UR Script sender&lt;/p&gt;&lt;p&gt;ROS Out Monitor&lt;/p&gt;&lt;p&gt;Used to be the ROS Out Monitor&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="styleSheet">
         <string notr="true">font: 10pt "Monospace";</string>

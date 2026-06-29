@@ -387,7 +387,7 @@ class RemoteURCmdr(Node):
             deactivate_list=self.active_controllers, activate_list=[self.freedrive_controllers]
         )
 
-        # Start the freedrive heartbeat @ 2Hz
+        # Start the freedrive heartbeat
         self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
 
     def _process_switch_controllers(self, activate_list, deactivate_list):
