@@ -86,6 +86,7 @@ class MockDashboardClient(Node):
         self.safety_mode = SafetyMode()
         self.safety_mode.mode = SafetyMode.NORMAL  # = 1
         self.program_name = "<unnamed>.urp"
+        self.robot_ip = "192.168.1.110"  # adding dummy ip address for the primary/rtde interface ports
         return
 
     def _changeRobotMode(self, target_mode: int):

@@ -132,6 +132,19 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="b_freedriveToggle">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sends ROS2 request to enable/disable freedrive mode&lt;/p&gt;&lt;p&gt;- ros2_control &lt;/p&gt;&lt;p&gt;- to safely swap controllers &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+               <property name="text">
+                <string>Freedrive Mode</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
+                </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
@@ -323,13 +336,17 @@
         </property>
        </widget>
       </widget>
-      <widget class="QPlainTextEdit" name="rosoutViewer">
-       <property name="sizePolicy">
+      <widget class="QPlainTextEdit" name="scriptInputText">
+       <property name="placeholderText">
+        <string></string>
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
        <property name="minimumSize">
         <size>
          <width>200</width>
@@ -337,7 +354,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;rosout Monitor&lt;/p&gt;&lt;p&gt;The rosout stream is continuously monitored and filtered for messages of interest which are displayed here&lt;/p&gt;&lt;p&gt;NOT YET IMPLEMENTED &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;UR Script sender&lt;/p&gt;&lt;p&gt;ROS Out Monitor&lt;/p&gt;&lt;p&gt;Used to be the ROS Out Monitor&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
        <property name="styleSheet">
         <string notr="true">font: 10pt "Monospace";</string>

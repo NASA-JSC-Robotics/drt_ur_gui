@@ -1,9 +1,11 @@
 left_drt_ur_gui:
   ros__parameters:
     dashboard_client_name: "left_dashboard_client"
+    freedrive_mode_controller_name: "left_"
     robot.name: "UR"
     arm.name: "Left Arm"
     program: "ext_ctrl.urp"
+    script_command_topic: "/script_command"
     logo_file_name: 'iMETRO_full.png'
     window.name: "DRT UR Remote Commander: Dual Arm Testing Configuration"
     window.stylesheet: |

@@ -1,6 +1,7 @@
 drt_ur_gui:
   ros__parameters:
     program: "ext_ctrl.urp"
+    script_command_topic: "/script_command"
     window.name: "DRT UR Remote Commander: Single Arm Testing Configuration"
     window.stylesheet: |
       QMainWindow {

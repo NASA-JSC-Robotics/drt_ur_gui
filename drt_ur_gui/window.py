@@ -157,7 +157,7 @@ class URGui(QMainWindow):
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
         self.b_clearService.clicked.connect(self.clear_service_clicked)
-        self.b_send.clicked.connect(self.send_service_clicked)
+        self.b_freedriveToggle.toggled.connect(self.freedrive_toggle_clicked)
         # TODO: self.b_watch.clicked.connect(
         return
 
@@ -304,6 +304,18 @@ class URGui(QMainWindow):
         self.addText("Restart safety requested, calling...")
         self.backend.send_service_request(self.backend.get_full_service_name("restart_safety"))
         return
+
+    # Slot for the Freedrive Button
+    @Slot(bool)
+    def freedrive_toggle_clicked(self, checked):
+        if checked:
+            self.addText("Requesting Freedrive Mode")
+            self.b_freedriveToggle.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold;")
+            self.backend.enable_ros2_freedrive()
+        else:
+            self.addText("Exiting Freedrive Mode")
+            self.b_freedriveToggle.setStyleSheet("")
+            self.backend.disable_ros2_freedrive()
 
     def status_robot_mode(self):
         self.backend.send_service_request(self.backend.get_full_service_name("get_robot_mode"))

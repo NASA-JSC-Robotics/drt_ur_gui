@@ -44,6 +44,12 @@ from std_srvs.srv import Trigger
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
+# Import ROS2 controller manager capabilities
+from controller_manager_msgs.srv import SwitchController
+from controller_manager_msgs.srv import ListControllers
+from std_msgs.msg import Bool
+
+
 _KNOWN_SRV_TYPES = [
     AddToLog,
     GetLoadedProgram,
@@ -82,6 +88,7 @@ class RemoteURCmdr(Node):
     program: Name of URScript program to be filled out when load_program is selected in the GUI, typically ext_ctrl.urp
                 or external_control.urp
     logo_file_name: The path to the logo that will be displayed in the GUI window
+    freedrive_mode_controller_name: prefix for the freedrive mode controller for the robot, if there are multiple robots
 
     Attributes:
     -----------
@@ -92,6 +99,15 @@ class RemoteURCmdr(Node):
     response_queue: Queue object used to pass service responses from ROS 2 thread to the GUI's Qt thread
     dashboard_client_name: Stores the parameter of the same name
     service_list_path: Stores the parameter of the same name
+
+    (&& Freedrive Mode Related Attributes &&)
+    freedrive_mode_controller_name: Gets the full freedrive controller name for the robot, if there are multiple robots
+    switch_controller_client: Service client to switch the state of controllers
+    list_controllers_client: For retrieving the list of all controllers (both active and inactive) on the robot
+    freedrive_pub: Publisher to keep freedrive mode active when enabled
+    active_controllers: For storing the list of currently active controllers
+    freedrive_controllers: Stores the freedrive mode controller
+    whitelisted_controllers: List of controllers that are not to be brought down when switching into freedrive mode
 
     Methods:
     --------
@@ -106,6 +122,15 @@ class RemoteURCmdr(Node):
             name (str): the name of the service that is being requested
             content (dict): the content of the service request, provided as a {field: value} dict
     _process_response: Queues incoming service request responses for GUI thread
+
+    (&& Freedrive Mode Related Methods &&)
+    _run_freedrive_heartbeat: Keepalive message for freedrive mode
+    enable_ros2_freedrive: Turns freedrive mode on and de-activates the current controllers
+    disable_ros2_freedrive: Turns freedrive mode off and re-activates the previous controllers
+    _switch_to_freedrive: Acquires the list of all controllers, stores the currently active controllers
+                          and the safety monitoring controllers
+    _process_switch_controllers: Actives and de-activates the requested controllers
+    _successful_controller_switch: Checks for the successful de/activation of controllers
 
     """
 
@@ -125,6 +150,21 @@ class RemoteURCmdr(Node):
         self.callbacks = {}
         self.response_queue = queue.Queue()
 
+        # For freedrive mode
+        self.freedrive_mode_controller_name = (
+            self.get_parameter("freedrive_mode_controller_name").get_parameter_value().string_value
+        )
+        self.switch_controller_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
+        self.list_controllers_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
+        self.control_request = ListControllers.Request()
+        self.freedrive_pub = self.create_publisher(
+            Bool, f"/{self.freedrive_mode_controller_name}freedrive_mode_controller/enable_freedrive_mode", 10
+        )
+        self.freedrive_active = False
+        self.active_controllers = []
+        self.freedrive_controllers = f"{self.freedrive_mode_controller_name}freedrive_mode_controller"
+        self.whitelisted_controllers = ["ur_controllers/GPIOController", "ur_controllers/FreedriveModeController"]
+
     def _init_params(self):
         self.declare_parameters(
             namespace="",
@@ -142,6 +182,7 @@ class RemoteURCmdr(Node):
                 ("arm.stylesheet", ""),
                 ("program", "default.urp"),
                 ("logo_file_name", ""),
+                ("freedrive_mode_controller_name", ""),
             ],
         )
 
@@ -289,3 +330,82 @@ class RemoteURCmdr(Node):
         self.get_logger().debug(f"Response from {service_name} added to queue")
         self.response_queue.put(output)
         return
+
+        # ROS2 Controller Manager functions
+        """Freedrive mode is backed by ROS2's Controller Manager, unlike the above
+        services that run through UR's dashboard client. It is not a currently
+        native feature of UR's dashboard client."""
+
+    def _run_freedrive_heartbeat(self):
+        # To keep the freedrive mode active
+        if self.freedrive_active:
+            msg = Bool(data=True)
+            self.freedrive_pub.publish(msg)
+
+    def enable_ros2_freedrive(self):
+        # Check if the freedrive controller and switch controller client are available
+        if not self.switch_controller_client.service_is_ready():
+            self.get_logger().error("Switch Controller service unavailable.")
+            return False
+
+        if not self.list_controllers_client.service_is_ready():
+            self.get_logger().error("List Controllers service unavailable.")
+            return False
+
+        # Get the list of currently active controllers, store them, and switch to freedrive mode
+        self.active_controllers.clear()
+        self.freedrive_active = True
+        get_all_controllers = self.list_controllers_client.call_async(self.control_request)
+        get_all_controllers.add_done_callback(self._switch_to_freedrive)
+
+    def disable_ros2_freedrive(self):
+        # Check if the switch controller manager is available
+        if not self.switch_controller_client.service_is_ready():
+            self.get_logger().error("Switch Controller service unavailable.")
+            return False
+
+        self.freedrive_active = False
+        self._process_switch_controllers(
+            deactivate_list=[self.freedrive_controllers], activate_list=self.active_controllers
+        )
+        self.destroy_timer(self.heartbeat_timer)
+
+    def _switch_to_freedrive(self, get_all_controllers):
+        # Controller request to get the list of active controllers before freedrive mode is enabled
+        controller_response = get_all_controllers.result()
+        if controller_response is None:
+            self.get_logger().error("Failed to retrieve list of all controllers. Not switching to freedrive mode.")
+            return
+        else:
+            self.get_logger().info("List of controllers received.")
+            for controller in controller_response.controller:
+                if controller.state == "active":
+                    if controller.required_command_interfaces and controller.name not in self.whitelisted_controllers:
+                        self.active_controllers.append(controller.name)
+
+        self._process_switch_controllers(
+            deactivate_list=self.active_controllers, activate_list=[self.freedrive_controllers]
+        )
+
+        # Start the freedrive heartbeat
+        self.heartbeat_timer = self.create_timer(0.5, self._run_freedrive_heartbeat)
+
+    def _process_switch_controllers(self, activate_list, deactivate_list):
+        req = SwitchController.Request(activate_controllers=activate_list, deactivate_controllers=deactivate_list)
+
+        req.strictness = SwitchController.Request.STRICT
+
+        future = self.switch_controller_client.call_async(req)
+        future.add_done_callback(self._successful_controller_switch)
+
+    def _successful_controller_switch(self, future):
+        res = future.result()
+
+        if res.ok and self.freedrive_active:
+            self.get_logger().info("Successfully paused tracking. Starting freedrive.")
+        elif res.ok and not self.freedrive_active:
+            self.get_logger().info("Freedrive mode disabled.")
+        elif not res.ok and self.freedrive_active:
+            self.get_logger().error("Failed to switch controllers.")
+        elif not res.ok and not self.freedrive_active:
+            self.get_logger().error("Failed to restore previous controllers.")
