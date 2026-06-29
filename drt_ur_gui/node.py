@@ -88,6 +88,7 @@ class RemoteURCmdr(Node):
     program: Name of URScript program to be filled out when load_program is selected in the GUI, typically ext_ctrl.urp
                 or external_control.urp
     logo_file_name: The path to the logo that will be displayed in the GUI window
+    freedrive_mode_controller_name: prefix for the freedrive mode controller for the robot, if there are multiple robots
 
     Attributes:
     -----------
@@ -100,11 +101,13 @@ class RemoteURCmdr(Node):
     service_list_path: Stores the parameter of the same name
 
     (&& Freedrive Mode Related Attributes &&)
+    freedrive_mode_controller_name: Gets the full freedrive controller name for the robot, if there are multiple robots
     switch_controller_client: Service client to switch the state of controllers
     list_controllers_client: For retrieving the list of all controllers (both active and inactive) on the robot
     freedrive_pub: Publisher to keep freedrive mode active when enabled
     active_controllers: For storing the list of currently active controllers
-    freedrive_controller: Stores the freedrive mode controller
+    freedrive_controllers: Stores the freedrive mode controller
+    whitelisted_controllers: List of controllers that are not to be brought down when switching into freedrive mode
 
     Methods:
     --------
