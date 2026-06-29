@@ -147,17 +147,19 @@ class RemoteURCmdr(Node):
         self.callbacks = {}
         self.response_queue = queue.Queue()
 
-        ## For freedrive mode
-        self.freedrive_direction = self.get_parameter("freedrive_direction").get_parameter_value().string_value
+        # For freedrive mode
+        self.freedrive_mode_controller_name = (
+            self.get_parameter("freedrive_mode_controller_name").get_parameter_value().string_value
+        )
         self.switch_controller_client = self.create_client(SwitchController, "/controller_manager/switch_controller")
         self.list_controllers_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
         self.control_request = ListControllers.Request()
         self.freedrive_pub = self.create_publisher(
-            Bool, f"/{self.freedrive_direction}freedrive_mode_controller/enable_freedrive_mode", 10
+            Bool, f"/{self.freedrive_mode_controller_name}freedrive_mode_controller/enable_freedrive_mode", 10
         )
         self.freedrive_active = False
         self.active_controllers = []
-        self.freedrive_controllers = [f"{self.freedrive_direction}freedrive_mode_controller"]
+        self.freedrive_controllers = f"{self.freedrive_mode_controller_name}freedrive_mode_controller"
         self.whitelisted_controllers = ["ur_controllers/GPIOController", "ur_controllers/FreedriveModeController"]
 
     def _init_params(self):
@@ -177,7 +179,7 @@ class RemoteURCmdr(Node):
                 ("arm.stylesheet", ""),
                 ("program", "default.urp"),
                 ("logo_file_name", ""),
-                ("freedrive_direction", ""),
+                ("freedrive_mode_controller_name", ""),
             ],
         )
 
@@ -326,9 +328,10 @@ class RemoteURCmdr(Node):
         self.response_queue.put(output)
         return
 
-    ## ROS2 Controller Manager functions
-    """ Unlike the above services that run through UR's dashboard client, Freedrive mode is backed by ROS2's Controller Manager.
-    Freedrive mode is not a currently native feature of UR's dashboard client. """
+        # ROS2 Controller Manager functions
+        """Freedrive mode is backed by ROS2's Controller Manager, unlike the above
+        services that run through UR's dashboard client. It is not a currently
+        native feature of UR's dashboard client."""
 
     def _run_freedrive_heartbeat(self):
         # To keep the freedrive mode active
@@ -360,7 +363,7 @@ class RemoteURCmdr(Node):
 
         self.freedrive_active = False
         self._process_switch_controllers(
-            deactivate_list=self.freedrive_controllers, activate_list=self.active_controllers
+            deactivate_list=[self.freedrive_controllers], activate_list=self.active_controllers
         )
         self.destroy_timer(self.heartbeat_timer)
 
@@ -378,7 +381,7 @@ class RemoteURCmdr(Node):
                         self.active_controllers.append(controller.name)
 
         self._process_switch_controllers(
-            deactivate_list=self.active_controllers, activate_list=self.freedrive_controllers
+            deactivate_list=self.active_controllers, activate_list=[self.freedrive_controllers]
         )
 
         # Start the freedrive heartbeat @ 2Hz
