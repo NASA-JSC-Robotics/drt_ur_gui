@@ -157,6 +157,7 @@ class URGui(QMainWindow):
         self.b_unlockPStop.clicked.connect(self.unlock_pstop_clicked)
         self.b_restartSafety.clicked.connect(self.restart_safety_clicked)
         self.b_clearService.clicked.connect(self.clear_service_clicked)
+        self.b_send.clicked.connect(self.send_service_clicked)
         self.b_freedriveToggle.toggled.connect(self.freedrive_toggle_clicked)
         # TODO: self.b_watch.clicked.connect(
         return
