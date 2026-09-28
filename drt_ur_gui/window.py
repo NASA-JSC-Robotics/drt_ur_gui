@@ -21,7 +21,7 @@ import os
 import sys
 import queue
 from datetime import datetime
-from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
+from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit, QWidget, QDockWidget
 from python_qt_binding.QtCore import (
     QFile,
     QIODevice,
@@ -55,7 +55,7 @@ from drt_ur_gui import (
 )
 
 
-class URGui(QMainWindow):
+class URGui(QDockWidget):
     """Frontend class for Dexterous Robotics Remote UR GUI
 
     Provides the user interface for remotely configuring and operating UR cobot arms.
@@ -71,7 +71,7 @@ class URGui(QMainWindow):
         self.backend = backend
         self.all_services = {item["name"]: item["type"] for item in self.backend.service_list}
         share_path = get_package_share_directory("drt_ur_gui")
-        ui_file_path = os.path.join(share_path, "ui", "drt_ur.ui")
+        ui_file_path = os.path.join(share_path, "ui", "drt_ur_dock.ui")
         self.resources_path = os.path.join(share_path, "resources")
         self._load_ui(ui_file_path)
         self._init_window()
