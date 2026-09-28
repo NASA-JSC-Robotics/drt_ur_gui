@@ -129,6 +129,7 @@ class URGui(QMainWindow):
         self.setCell(0, 0, "UR mode:")
         self.setCell(1, 0, "UR Safety mode:")
         self.setCell(2, 0, "UR Program state:")
+        self.watchTable.resizeColumnsToContents()
         timer_robot_mode = QTimer(self)
         timer_robot_mode.timeout.connect(self.status_robot_mode)
         timer_robot_mode.start(2000)  # 0.5 hz
