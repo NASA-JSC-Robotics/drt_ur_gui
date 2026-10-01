@@ -45,11 +45,10 @@ def cleanup_ros2(node, multithread_exec):
 
 def main(args=None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # block incoming SIGINT signals
-    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)  # tell ros2 to let us handle all signals 
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)  # tell ros2 to let us handle all signals
 
-
-    raw_args = sys.argv[1:] 
-    parameter_files = [raw_args[i+1] for i, x in enumerate(raw_args) if x == "--params-file"]
+    raw_args = sys.argv[1:]
+    parameter_files = [raw_args[i + 1] for i, x in enumerate(raw_args) if x == "--params-file"]
     nodes_to_run = []
     for parameter_file in parameter_files:
         with open(parameter_file) as f:
@@ -62,7 +61,7 @@ def main(args=None):
     app = QApplication(sys.argv)  # Create Qt application
     main_window = QMainWindow()
 
-    for node_name in nodes_to_run: 
+    for node_name in nodes_to_run:
         ur_cmdr = RemoteURCmdr(node_name=node_name)
         gui = URGui(ur_cmdr)  # GUI Node with backend node arg
         main_window.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, gui)

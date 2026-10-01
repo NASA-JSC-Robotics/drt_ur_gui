@@ -21,7 +21,7 @@ import os
 import sys
 import queue
 from datetime import datetime
-from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit, QWidget, QDockWidget
+from python_qt_binding.QtWidgets import QTableWidgetItem, QTreeWidgetItem, QLineEdit, QDockWidget
 from python_qt_binding.QtCore import (
     QFile,
     QIODevice,
