@@ -19,6 +19,7 @@
 
 import signal
 import sys
+import yaml
 from functools import partial
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
@@ -46,25 +47,17 @@ def main(args=None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # block incoming SIGINT signals
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)  # tell ros2 to let us handle all signals 
 
-    from pathlib import Path
-    import yaml
-    from pprint import pprint
 
     raw_args = sys.argv[1:] 
-    indx = raw_args.index("--params-file")
-
-    print(f"Remaining command line arguments: {raw_args[indx+1]}")
-    quit()
-    nodes_to_run = None
-    with open(raw_args[indx+1]) as f:
-        data = yaml.safe_load(f)
-        for k, v in data.items(): 
-            parameter_list = list(v["ros__parameters"].keys())
-            nodes_to_run = set([node_param.split(".")[0] for node_param in parameter_list])
+    parameter_files = [raw_args[i+1] for i, x in enumerate(raw_args) if x == "--params-file"]
+    nodes_to_run = []
+    for parameter_file in parameter_files:
+        with open(parameter_file) as f:
+            data = yaml.safe_load(f)
+            nodes_to_run.append(next(iter(data.keys())))
 
     nodes = []
     guis = []
-
 
     app = QApplication(sys.argv)  # Create Qt application
     main_window = QMainWindow()
