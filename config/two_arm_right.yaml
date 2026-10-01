@@ -1,6 +1,7 @@
 right_drt_ur_gui:
   ros__parameters:
     dashboard_client_name: "right_dashboard_client"
+    freedrive_mode_controller_name: "right_"
     robot.name: "UR"
     arm.name: "Right Arm"
     program: "ext_ctrl.urp"
