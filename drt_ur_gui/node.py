@@ -135,8 +135,8 @@ class RemoteURCmdr(Node):
     """
 
     # TODO: shutdown or __del__ cleanup function
-    def __init__(self):
-        super().__init__("drt_ur_gui")
+    def __init__(self, node_name="drt_ur_gui"):
+        super().__init__(node_name)
         self.get_logger().info("Starting drt_ur_gui node...")
         self.service_request_timeout = 5.0  # seconds # TODO: Param self.service_request_timeout
         self.active_service_requests = {}  # used to store and ID async service requests for timeout handling

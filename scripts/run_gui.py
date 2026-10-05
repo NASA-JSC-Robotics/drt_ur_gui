@@ -19,11 +19,13 @@
 
 import signal
 import sys
+import yaml
 from functools import partial
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
-from python_qt_binding.QtWidgets import QApplication
-from python_qt_binding.QtCore import QTimer
+from python_qt_binding.QtWidgets import QApplication, QMainWindow
+from python_qt_binding.QtCore import QTimer, Qt
+
 from rclpy.signals import SignalHandlerOptions
 
 from drt_ur_gui.window import URGui
@@ -44,12 +46,32 @@ def cleanup_ros2(node, multithread_exec):
 def main(args=None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # block incoming SIGINT signals
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)  # tell ros2 to let us handle all signals
+
+    raw_args = sys.argv[1:]
+    parameter_files = [raw_args[i + 1] for i, x in enumerate(raw_args) if x == "--params-file"]
+    nodes_to_run = []
+    for parameter_file in parameter_files:
+        with open(parameter_file) as f:
+            data = yaml.safe_load(f)
+            nodes_to_run.append(next(iter(data.keys())))
+
+    nodes = []
+    guis = []
+
     app = QApplication(sys.argv)  # Create Qt application
-    ur_cmdr = RemoteURCmdr()  # GUI backend node
-    ur_gui = URGui(ur_cmdr)  # GUI Node with backend node arg
+    main_window = QMainWindow()
+
+    for node_name in nodes_to_run:
+        ur_cmdr = RemoteURCmdr(node_name=node_name)
+        gui = URGui(ur_cmdr)  # GUI Node with backend node arg
+        main_window.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, gui)
+
+        nodes.append(ur_cmdr)
+        guis.append(gui)
 
     mtexec = MultiThreadedExecutor()
-    mtexec.add_node(ur_cmdr)
+    for node in nodes:
+        mtexec.add_node(node)
 
     def sigterm_handler(sig, frame):
         """
@@ -65,15 +87,18 @@ def main(args=None):
     timer.timeout.connect(partial(mtexec.spin_once, timeout_sec=0))
     timer.start(10)  # 10ms, 100Hz refresh rate
 
-    cleanup_function = partial(cleanup_ros2, ur_cmdr, mtexec)  # partial function/lambda for backend node clean up
-    app.aboutToQuit.connect(cleanup_function)  # Triggers cleanup_function on GUI window close
+    for ur_cmdr in nodes:
+        cleanup_function = partial(cleanup_ros2, ur_cmdr, mtexec)  # partial function/lambda for backend node clean up
+        app.aboutToQuit.connect(cleanup_function)  # Triggers cleanup_function on GUI window close
 
     try:
-        ur_gui.show()
+        main_window.show()
         sys.exit(app.exec_())
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        cleanup_ros2(ur_cmdr, mtexec)  # Trigger cleanup on unexpected exceptions
+        for ur_cmdr in nodes:
+            cleanup_ros2(ur_cmdr, mtexec)  # Trigger cleanup on unexpected exceptions
+
         sys.exit(1)
 
 
