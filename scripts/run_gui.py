@@ -17,11 +17,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import signal
 import sys
+import argparse
 import yaml
 from functools import partial
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from rclpy.executors import MultiThreadedExecutor
 from python_qt_binding.QtWidgets import QApplication, QMainWindow
 from python_qt_binding.QtCore import QTimer, Qt
@@ -47,10 +50,24 @@ def main(args=None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # block incoming SIGINT signals
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)  # tell ros2 to let us handle all signals
 
-    raw_args = sys.argv[1:]
-    parameter_files = [raw_args[i + 1] for i, x in enumerate(raw_args) if x == "--params-file"]
+    parser = argparse.ArgumentParser(description="A sample script demonstrating how to use Python's argparse module.")
+    parser.add_argument(
+        "--params-file",
+        action="append",
+        type=str,
+        default=[],
+        help="YAML file.",
+    )
+
+    custom_args, unknown = parser.parse_known_args()
+    custom_args.params_file = (
+        custom_args.params_file
+        if len(custom_args.params_file) != 0
+        else [os.path.join(get_package_share_directory("drt_ur_gui"), "config", "one_arm.yaml")]
+    )
+
     nodes_to_run = []
-    for parameter_file in parameter_files:
+    for parameter_file in custom_args.params_file:
         with open(parameter_file) as f:
             data = yaml.safe_load(f)
             nodes_to_run.append(next(iter(data.keys())))
