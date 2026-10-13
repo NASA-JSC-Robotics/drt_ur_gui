@@ -20,7 +20,7 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -54,12 +54,27 @@ def generate_launch_description():
         )
     )
 
+    declared_arguments.append(
+        DeclareLaunchArgument("use_one_window", default_value="true", description="Use the same window or nah?")
+    )
+
+    use_one_window = LaunchConfiguration("use_one_window")
+
     mock_dashboard = LaunchConfiguration("mock_dashboard")
     ns = LaunchConfiguration("ns")
     config_right = LaunchConfiguration("right_arm_config_path")
     config_left = LaunchConfiguration("left_arm_config_path")
 
-    right_arm_nodes = [
+    gui_nodes = [
+        Node(
+            package="drt_ur_gui",
+            executable="run_gui.py",
+            output="screen",
+            namespace=ns,
+            parameters=[config_left, config_right],
+            sigterm_timeout="0",
+            condition=IfCondition(use_one_window),
+        ),
         Node(
             package="drt_ur_gui",
             executable="run_gui.py",
@@ -68,19 +83,8 @@ def generate_launch_description():
             namespace=ns,
             parameters=[config_right],
             sigterm_timeout="0",
+            condition=UnlessCondition(use_one_window),
         ),
-        Node(
-            package="drt_ur_gui",
-            executable="run_mock_dbc.py",
-            name="right_dashboard_client",  # must match dashboard_client_name in config/two_arm_right.yaml
-            output="screen",
-            namespace=ns,
-            condition=IfCondition(mock_dashboard),
-            sigterm_timeout="0",
-        ),
-    ]
-
-    left_arm_nodes = [
         Node(
             package="drt_ur_gui",
             executable="run_gui.py",
@@ -88,6 +92,19 @@ def generate_launch_description():
             output="screen",
             namespace=ns,
             parameters=[config_left],
+            sigterm_timeout="0",
+            condition=UnlessCondition(use_one_window),
+        ),
+    ]
+
+    dashboard_nodes = [
+        Node(
+            package="drt_ur_gui",
+            executable="run_mock_dbc.py",
+            name="right_dashboard_client",  # must match dashboard_client_name in config/two_arm_right.yaml
+            output="screen",
+            namespace=ns,
+            condition=IfCondition(mock_dashboard),
             sigterm_timeout="0",
         ),
         Node(
@@ -101,4 +118,4 @@ def generate_launch_description():
         ),
     ]
 
-    return LaunchDescription(declared_arguments + left_arm_nodes + right_arm_nodes)
+    return LaunchDescription(declared_arguments + dashboard_nodes + gui_nodes)
