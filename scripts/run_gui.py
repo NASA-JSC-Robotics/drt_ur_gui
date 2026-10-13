@@ -42,8 +42,10 @@ def cleanup_ros2(node, multithread_exec):
     node.get_logger().info("Starting cleanup on shutdown...")
     multithread_exec.remove_node(node)
     node.destroy_node()
-    multithread_exec.shutdown()
-    rclpy.try_shutdown()
+
+    if len(multithread_exec.get_nodes()) == 0:
+        multithread_exec.shutdown()
+        rclpy.try_shutdown()
 
 
 def main(args=None):
