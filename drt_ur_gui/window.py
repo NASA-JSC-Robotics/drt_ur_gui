@@ -21,7 +21,7 @@ import os
 import sys
 import queue
 from datetime import datetime
-from python_qt_binding.QtWidgets import QMainWindow, QTableWidgetItem, QTreeWidgetItem, QLineEdit
+from python_qt_binding.QtWidgets import QTableWidgetItem, QTreeWidgetItem, QLineEdit, QDockWidget
 from python_qt_binding.QtCore import (
     QFile,
     QIODevice,
@@ -55,7 +55,7 @@ from drt_ur_gui import (
 )
 
 
-class URGui(QMainWindow):
+class URGui(QDockWidget):
     """Frontend class for Dexterous Robotics Remote UR GUI
 
     Provides the user interface for remotely configuring and operating UR cobot arms.
@@ -71,7 +71,7 @@ class URGui(QMainWindow):
         self.backend = backend
         self.all_services = {item["name"]: item["type"] for item in self.backend.service_list}
         share_path = get_package_share_directory("drt_ur_gui")
-        ui_file_path = os.path.join(share_path, "ui", "drt_ur.ui")
+        ui_file_path = os.path.join(share_path, "ui", "drt_ur_dock.ui")
         self.resources_path = os.path.join(share_path, "resources")
         self._load_ui(ui_file_path)
         self._init_window()
@@ -129,6 +129,7 @@ class URGui(QMainWindow):
         self.setCell(0, 0, "UR mode:")
         self.setCell(1, 0, "UR Safety mode:")
         self.setCell(2, 0, "UR Program state:")
+        self.watchTable.resizeColumnsToContents()
         timer_robot_mode = QTimer(self)
         timer_robot_mode.timeout.connect(self.status_robot_mode)
         timer_robot_mode.start(2000)  # 0.5 hz
