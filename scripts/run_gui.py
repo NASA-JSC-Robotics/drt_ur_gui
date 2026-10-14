@@ -100,6 +100,7 @@ def main(args=None):
         app.quit()
 
     signal.signal(signal.SIGTERM, sigterm_handler)  # set SIGTERM signals to trigger sigterm_handler function
+    signal.signal(signal.SIGINT, sigterm_handler)
 
     # Running the Qt App through a QTimer to allow for graceful exit through app.quit() in sigterm_handler function
     timer = QTimer()
