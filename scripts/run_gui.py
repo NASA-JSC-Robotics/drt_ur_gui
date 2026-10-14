@@ -35,17 +35,16 @@ from drt_ur_gui.window import URGui
 from drt_ur_gui.node import RemoteURCmdr
 
 
-def cleanup_ros2(node, multithread_exec):
+def cleanup_ros2(multithread_exec):
     """
     Cleanup function for the GUI backend node.
     """
-    node.get_logger().info("Starting cleanup on shutdown...")
-    multithread_exec.remove_node(node)
-    node.destroy_node()
-
-    if len(multithread_exec.get_nodes()) == 0:
-        multithread_exec.shutdown()
-        rclpy.try_shutdown()
+    for node in multithread_exec.get_nodes():
+        node.get_logger().info("Starting cleanup on shutdown...")
+        multithread_exec.remove_node(node)
+        node.destroy_node()
+    multithread_exec.shutdown()
+    rclpy.try_shutdown()
 
 
 def main(args=None):
@@ -107,19 +106,14 @@ def main(args=None):
     timer.timeout.connect(partial(mtexec.spin_once, timeout_sec=0))
     timer.start(10)  # 10ms, 100Hz refresh rate
 
-    for ur_cmdr in nodes:
-        cleanup_function = partial(cleanup_ros2, ur_cmdr, mtexec)  # partial function/lambda for backend node clean up
-        app.aboutToQuit.connect(cleanup_function)  # Triggers cleanup_function on GUI window close
-
     try:
         main_window.show()
         sys.exit(app.exec_())
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        for ur_cmdr in nodes:
-            cleanup_ros2(ur_cmdr, mtexec)  # Trigger cleanup on unexpected exceptions
-
         sys.exit(1)
+    finally:
+        cleanup_ros2(mtexec)
 
 
 if __name__ == "__main__":
